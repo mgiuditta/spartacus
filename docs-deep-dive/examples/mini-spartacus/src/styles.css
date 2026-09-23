@@ -1,0 +1,12 @@
+/* Stili minimi: Spartacus usa @spartacus/styles (SCSS), qui bastano poche regole. */
+body { font-family: system-ui, sans-serif; margin: 0; color: #1d2d3e; }
+header .header { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; padding: 0.5rem 1rem; background: #0a2e5c; color: #fff; }
+header a, header label { color: #fff; }
+main { padding: 1rem; min-height: 60vh; }
+footer { padding: 1rem; background: #eef2f6; }
+.carousel { display: flex; gap: 1rem; list-style: none; padding: 0; flex-wrap: wrap; }
+.carousel li { border: 1px solid #ccd; padding: 0.5rem; width: 170px; }
+.carousel a { display: flex; flex-direction: column; }
+.promo-bar { background: #ffd54f; padding: 0.25rem 1rem; text-align: center; }
+.error { color: #b00020; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }

@@ -910,6 +910,65 @@ Path: `core-libs/core/src/occ/interceptors/with-credentials.interceptor.ts`
 
 ---
 
+## Flusso passo-passo
+
+Come usare il glossario mentre leggi il codice di Spartacus:
+
+1. Incontri un nome sconosciuto in un file (es. `facadeFactory` in `feature-libs/cart/base/root/facade/active-cart.facade.ts`).
+2. Cercalo qui in ordine alfabetico e leggi la definizione di due righe.
+3. Apri il path indicato nella riga "Path:" per vedere l'implementazione reale.
+4. Se il termine appartiene a un meccanismo più grande (CMS, routing, stato, SSR), passa al capitolo corrispondente: 04 per il CMS, 05 per il routing, 06 per lo stato, 07/08 per OCC, 09 per l'SSR.
+5. Controlla la tabella "Errori comuni" qui sotto: molti termini hanno un "gemello" con cui si confondono (chunk di config vs chunk i18n, slot vs outlet, anonymous vs guest).
+
+## Codice minimo riscritto a mano
+
+Un esempio che mette insieme sei termini del glossario in poche righe (config chunk, OCC endpoint, adapter, connector, normalizer, facade), riscritto a mano in stile Spartacus:
+
+```ts
+import { Injectable, InjectionToken, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable, map } from 'rxjs';
+
+// "Converter" / "Normalizer": trasforma il DTO OCC nel modello UI
+export interface Converter<S, T> { convert(source: S, target?: T): T; }
+export const PRODUCT_NORMALIZER = new InjectionToken<Converter<any, Product>[]>('ProductNormalizer');
+
+export interface Product { code: string; name: string; }
+
+// "Adapter": astratto, conosce il backend solo tramite l'implementazione
+export abstract class ProductAdapter {
+  abstract load(code: string): Observable<Product>;
+}
+
+// "OCC adapter": implementazione REST (endpoint da config, vedi OccEndpointsService)
+@Injectable()
+export class OccProductAdapter extends ProductAdapter {
+  private http = inject(HttpClient);
+  private normalizers = inject(PRODUCT_NORMALIZER, { optional: true }) ?? [];
+  load(code: string): Observable<Product> {
+    return this.http
+      .get<any>(`/occ/v2/electronics-spa/products/${code}?fields=DEFAULT`)
+      .pipe(map((dto) => this.normalizers.reduce((t, n) => n.convert(dto, t), { ...dto })));
+  }
+}
+
+// "Connector": il punto unico usato da effects/servizi
+@Injectable({ providedIn: 'root' })
+export class ProductConnector {
+  private adapter = inject(ProductAdapter);
+  get(code: string): Observable<Product> { return this.adapter.load(code); }
+}
+
+// "Facade": API pubblica per i componenti
+@Injectable({ providedIn: 'root' })
+export class ProductFacade {
+  private connector = inject(ProductConnector);
+  get(code: string): Observable<Product> { return this.connector.get(code); }
+}
+```
+
+La versione reale di ciascun pezzo: `ConverterService` in `core-libs/core/src/util/converter.service.ts`, `ProductAdapter` in `core-libs/core/src/product/connectors/product/product.adapter.ts`, `OccProductAdapter` in `core-libs/core/src/occ/adapters/product/occ-product.adapter.ts`, `ProductConnector` in `core-libs/core/src/product/connectors/product/product.connector.ts`, `ProductService` in `core-libs/core/src/product/facade/product.service.ts`.
+
 ## Errori comuni
 
 Coppie di termini che si confondono spesso:
