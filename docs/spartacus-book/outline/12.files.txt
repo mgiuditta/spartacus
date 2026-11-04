@@ -1,0 +1,12 @@
+core-libs/core/src/lazy-loading/events/index.ts
+core-libs/core/src/lazy-loading/events/module-initialized-event.ts
+core-libs/core/src/lazy-loading/facade-factory/facade-descriptor.ts
+core-libs/core/src/lazy-loading/facade-factory/facade-factory.service.ts
+core-libs/core/src/lazy-loading/facade-factory/facade-factory.ts
+core-libs/core/src/lazy-loading/facade-factory/index.ts
+core-libs/core/src/lazy-loading/feature-modules.service.ts
+core-libs/core/src/lazy-loading/index.ts
+core-libs/core/src/lazy-loading/lazy-loading.module.ts
+core-libs/core/src/lazy-loading/lazy-modules.service.ts
+core-libs/core/src/lazy-loading/tokens.ts
+core-libs/core/src/lazy-loading/unified-injector.ts

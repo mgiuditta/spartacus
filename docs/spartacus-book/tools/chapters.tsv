@@ -1,0 +1,52 @@
+# id	part	slug	title
+01	1	01-dependency-injection	Dependency Injection in Angular e in Spartacus
+02	1	02-ngmodule-standalone-bootstrap	NgModule, standalone e bootstrap dell'applicazione
+03	1	03-lazy-loading	Lazy loading: router e moduli caricati a runtime
+04	1	04-change-detection-zone-signals	Change detection, Zone, zoneless e signals
+05	1	05-router	Il Router di Angular
+06	1	06-httpclient-interceptor	HttpClient e interceptor
+07	1	07-ssr-hydration-transferstate	SSR, hydration e TransferState
+08	1	08-schematics-builder	Schematics e builder
+10	2	10-bootstrap-inizializzazione	Bootstrap e ordine di inizializzazione
+11	2	11-configurazione	Configurazione: provideConfig, default, merge, validator, initializer
+12	2	12-feature-module-lazy	Feature module e lazy loading in Spartacus
+13	2	13-site-context-theme	Site context e site theme
+14	2	14-routing	Routing: route semantiche, URL, page guard, contesto
+15	2	15-cms-core	CMS (core): pagine, slot, componenti, caricamento
+16	2	16-cms-rendering	CMS (storefront): rendering dinamico delle pagine
+17	2	17-outlet	Outlet
+18	2	18-layout-breakpoint-a11y	Layout, breakpoint, launch dialog e accessibilità
+19	2	19-state-management	State management: NgRx, loader/entity/process state
+20	2	20-facade-command-query-eventi	Facade, command & query, eventi
+21	2	21-occ	Livello OCC: adapter, connector, converter, endpoint
+22	2	22-auth	Autenticazione: OAuth, token, interceptor, refresh
+23	2	23-user	Utente, profilo, consensi
+24	2	24-product-search	Prodotto e ricerca
+25	2	25-cart	Carrello
+26	2	26-checkout	Checkout
+27	2	27-order	Ordini
+28	2	28-organization-b2b	B2B: organization
+29	2	29-asm	ASM (Assisted Service Module)
+30	2	30-product-configurator	Product configurator
+31	2	31-quote-ticketing-subscription	Quote, customer ticketing, subscription billing
+32	2	32-pickup-storefinder-delivery	Pickup in store, store finder, delivery date
+33	2	33-tracking-smartedit-qualtrics	Tracking, SmartEdit, Qualtrics
+34	2	34-integration-cdc-cdp-cds	Integration libs: CDC, CDP, CDS, segment-refs
+35	2	35-integration-opf-payments	Integration libs: OPF, digital payments, OPPS
+36	2	36-integration-s4-omf-cpq-punchout-epd	Integration libs: S/4, OMF, CPQ quote, punchout, EPD
+37	2	37-i18n	Internazionalizzazione (i18n)
+38	2	38-stili-theming	Stili e theming
+39	2	39-ssr-ottimizzato	SSR ottimizzato
+40	2	40-seo-pwa	SEO e PWA
+41	2	41-errori-global-message	Errori HTTP, error handling, logger e global message
+42	2	42-feature-toggle-deprecazioni	Feature toggle e deprecazioni
+43	2	43-schematics-migrazioni	Schematics e migrazioni di Spartacus
+44	2	44-test-tooling	Strategia di test e tooling del monorepo
+45	2	45-componenti-storefront	Componenti CMS e shared components di storefront
+46	2	46-util-modelli	Utility, window e modelli di dominio
+47	2	47-app-demo	L'app demo storefrontapp
+50	3	50-ricette-config-di	Ricette: configurazione, DI, interceptor, eventi
+51	3	51-ricette-cms-outlet-layout	Ricette: componenti CMS, outlet, route e layout
+52	3	52-ricette-occ-dati	Ricette: OCC, adapter, converter, endpoint, meta resolver
+53	3	53-ricette-feature-cart-checkout-stili-i18n	Ricette: feature lib lazy, carrello/checkout, stili, traduzioni
+54	3	54-upgrade-safe	API pubblica vs interna, upgrade, anti-pattern, checklist

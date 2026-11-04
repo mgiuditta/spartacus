@@ -1,0 +1,14 @@
+core-libs/core/public_api.ts
+core-libs/core/src/base-core.module.ts
+core-libs/setup/public_api.ts
+core-libs/setup/recipes/b2b/config/default-b2b-occ-config.ts
+core-libs/setup/recipes/b2b/config/index.ts
+core-libs/setup/recipes/b2b/index.ts
+core-libs/setup/recipes/index.ts
+core-libs/storefront/base-storefront.module.ts
+core-libs/storefront/public_api.ts
+core-libs/storefront/recipes/config/default-media.config.ts
+core-libs/storefront/recipes/config/index.ts
+core-libs/storefront/recipes/config/layout-config.ts
+core-libs/storefront/recipes/config/static-cms-structure.ts
+core-libs/storefront/recipes/index.ts

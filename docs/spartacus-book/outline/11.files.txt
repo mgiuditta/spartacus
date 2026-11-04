@@ -1,0 +1,17 @@
+core-libs/core/src/config/config-factory.ts
+core-libs/core/src/config/config-initializer/config-initializer.module.ts
+core-libs/core/src/config/config-initializer/config-initializer.service.ts
+core-libs/core/src/config/config-initializer/config-initializer.ts
+core-libs/core/src/config/config-initializer/index.ts
+core-libs/core/src/config/config-providers.ts
+core-libs/core/src/config/config-tokens.ts
+core-libs/core/src/config/config-validator/config-validator.module.ts
+core-libs/core/src/config/config-validator/config-validator.ts
+core-libs/core/src/config/config-validator/index.ts
+core-libs/core/src/config/config.module.ts
+core-libs/core/src/config/index.ts
+core-libs/core/src/config/services/configuration.service.ts
+core-libs/core/src/config/test-config.module.ts
+core-libs/core/src/config/utils/deep-merge.ts
+core-libs/core/src/config/utils/get-cookie.ts
+core-libs/core/src/config/utils/string-template.ts
