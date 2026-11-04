@@ -19,44 +19,44 @@ Il capitolo copre anche due argomenti collaterali assegnati agli stessi file: le
 
 ## 2. Mappa dei file
 
-Tutti i path sono relativi a `core-libs/storefront/`. Il barrel pubblico è `public_api.ts`, che riesporta `./cms-pages/index` (L22), `./cms-structure/index` (L23) e `./shared/index` (L29).
+Il barrel pubblico è `public_api.ts`, che riesporta `./cms-pages/index` (L22), `./cms-structure/index` (L23) e `./shared/index` (L29).
 
 | Path | Ruolo |
 |---|---|
-| `cms-structure/page/page-layout/page-layout.component.ts` (+ `.html`) | `PageLayoutComponent` (`cx-page-layout`): calcola nome layout, slot, page fold; rende un outlet e un `cx-page-slot` per slot |
-| `cms-structure/page/page-layout/page-layout.service.ts` | `PageLayoutService`: risolve gli slot da `LayoutConfig` (template/section/breakpoint) e li passa agli handler |
-| `cms-structure/page/page-layout/page-layout-handler.ts` | `PAGE_LAYOUT_HANDLER` (multi token) e interfaccia `PageLayoutHandler` |
-| `cms-structure/page/page-layout/page-template.directive.ts` | `PageTemplateDirective` (`cxPageTemplateStyle`): classe CSS = page template, con rehydration SSR |
-| `cms-structure/page/page-layout/page-layout.module.ts` | `PageLayoutModule` |
-| `cms-structure/page/slot/page-slot.component.ts` (+ `.html`) | `PageSlotComponent` (`cx-page-slot`): legge lo slot, gestisce classi `cx-pending`/`page-fold`, outlet per slot e per componente |
-| `cms-structure/page/slot/page-slot.service.ts` | `PageSlotService`: slot pre-renderizzati in SSR e opzioni di defer |
-| `cms-structure/page/slot/page-slot.module.ts` | `PageSlotModule` (istanzia subito `PageSlotService`) |
-| `cms-structure/page/component/component-wrapper.directive.ts` | `ComponentWrapperDirective` (`cxComponentWrapper`): mapping → injector → handler → eventi |
-| `cms-structure/page/component/inner-components-host.directive.ts` | `InnerComponentsHostDirective` (`cxInnerComponentsHost`): rende `composition.inner` |
-| `cms-structure/page/component/handlers/component-handler.ts` | `ComponentHandler`: classe astratta e token multi |
-| `cms-structure/page/component/handlers/default-component.handler.ts` | `DefaultComponentHandler`: classi Angular (priorità `FALLBACK`) |
-| `cms-structure/page/component/handlers/lazy-component.handler.ts` | `LazyComponentHandler`: `() => import()` con `PendingTasks` (priorità `LOW`) |
-| `cms-structure/page/component/handlers/web-component.handler.ts` | `WebComponentHandler`: `'path#selector'` (non registrato né esportato) |
-| `cms-structure/page/component/page-component.module.ts` | `PageComponentModule` (+ `forRoot()` che registra gli handler) |
-| `cms-structure/page/component/services/component-handler.service.ts` | `ComponentHandlerService`: sceglie l'handler con `resolveApplicable` |
-| `cms-structure/page/component/services/cms-injector.service.ts` | `CmsInjectorService`: injector per componente CMS |
-| `cms-structure/page/component/services/component-data.provider.ts` | `ComponentDataProvider`: unisce dati statici e dati CMS (interno) |
-| `cms-structure/page/component/services/cx-api.service.ts` | `CxApiService`: facade esposti ai web component (interno) |
-| `cms-structure/page/component/events/component.event.ts` | `ComponentEvent`, `ComponentCreateEvent`, `ComponentDestroyEvent` |
-| `cms-structure/page/model/cms-component-data.ts` | `CmsComponentData<T>` |
-| `cms-structure/services/cms-components.service.ts` | `CmsComponentsService`: mapping (anche da feature lazy), SSR, child routes, guard, i18n, defer, dati statici |
-| `cms-structure/services/cms-features.service.ts` | `CmsFeaturesService`: feature module CMS e loro config |
-| `cms-structure/services/cms-guards.service.ts` | `CmsGuardsService`: guard dichiarate dai componenti della pagina |
-| `cms-structure/services/guards-composer.ts` | `GuardsComposer` e tipi `CanActivate`, `CanActivateObservable` |
-| `cms-structure/services/cms-i18n.service.ts` | `CmsI18nService`: chunk i18n dei componenti |
-| `cms-structure/services/cms-routes.service.ts` | `CmsRoutesService` (astratto pubblico, `useExisting` impl) |
-| `cms-structure/services/cms-routes-impl.service.ts` | `CmsRoutesImplService` (interno): child route CMS con `resetConfig` |
-| `cms-structure/services/utils.ts` | `isCanActivate` (interno) |
-| `cms-structure/utils/cms-structure.util.ts`, `cms-structure.model.ts` | `provideCmsStructure`, `PageSection`, `CmsStructureOptions` |
-| `cms-structure/cms-lcp-context/*` | `CmsLcpModule`, `CmsLcpService`, `LcpCmsComponentsConfig`, `provideLcpPresenceForCmsComponent` |
-| `shared/lcp-context/*` | `LCP_PRESENCE`, `LcpPresence`, `LcpContextDirective`, `ProvideLcpPresenceDirective`, `LcpPresenceMappingService` |
-| `cms-pages/product-details-page/*` | `ProductDetailsPageModule`, `PRODUCT_DETAILS_URL_MATCHER` |
-| `cms-pages/product-listing-page/*` | `ProductListingPageModule`, `PRODUCT_LISTING_URL_MATCHER` |
+| `core-libs/storefront/cms-structure/page/page-layout/page-layout.component.ts` (+ `.html`) | `PageLayoutComponent` (`cx-page-layout`): calcola nome layout, slot, page fold; rende un outlet e un `cx-page-slot` per slot |
+| `core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts` | `PageLayoutService`: risolve gli slot da `LayoutConfig` (template/section/breakpoint) e li passa agli handler |
+| `core-libs/storefront/cms-structure/page/page-layout/page-layout-handler.ts` | `PAGE_LAYOUT_HANDLER` (multi token) e interfaccia `PageLayoutHandler` |
+| `core-libs/storefront/cms-structure/page/page-layout/page-template.directive.ts` | `PageTemplateDirective` (`cxPageTemplateStyle`): classe CSS = page template, con rehydration SSR |
+| `core-libs/storefront/cms-structure/page/page-layout/page-layout.module.ts` | `PageLayoutModule` |
+| `core-libs/storefront/cms-structure/page/slot/page-slot.component.ts` (+ `.html`) | `PageSlotComponent` (`cx-page-slot`): legge lo slot, gestisce classi `cx-pending`/`page-fold`, outlet per slot e per componente |
+| `core-libs/storefront/cms-structure/page/slot/page-slot.service.ts` | `PageSlotService`: slot pre-renderizzati in SSR e opzioni di defer |
+| `core-libs/storefront/cms-structure/page/slot/page-slot.module.ts` | `PageSlotModule` (istanzia subito `PageSlotService`) |
+| `core-libs/storefront/cms-structure/page/component/component-wrapper.directive.ts` | `ComponentWrapperDirective` (`cxComponentWrapper`): mapping → injector → handler → eventi |
+| `core-libs/storefront/cms-structure/page/component/inner-components-host.directive.ts` | `InnerComponentsHostDirective` (`cxInnerComponentsHost`): rende `composition.inner` |
+| `core-libs/storefront/cms-structure/page/component/handlers/component-handler.ts` | `ComponentHandler`: classe astratta e token multi |
+| `core-libs/storefront/cms-structure/page/component/handlers/default-component.handler.ts` | `DefaultComponentHandler`: classi Angular (priorità `FALLBACK`) |
+| `core-libs/storefront/cms-structure/page/component/handlers/lazy-component.handler.ts` | `LazyComponentHandler`: `() => import()` con `PendingTasks` (priorità `LOW`) |
+| `core-libs/storefront/cms-structure/page/component/handlers/web-component.handler.ts` | `WebComponentHandler`: `'path#selector'` (non registrato né esportato) |
+| `core-libs/storefront/cms-structure/page/component/page-component.module.ts` | `PageComponentModule` (+ `forRoot()` che registra gli handler) |
+| `core-libs/storefront/cms-structure/page/component/services/component-handler.service.ts` | `ComponentHandlerService`: sceglie l'handler con `resolveApplicable` |
+| `core-libs/storefront/cms-structure/page/component/services/cms-injector.service.ts` | `CmsInjectorService`: injector per componente CMS |
+| `core-libs/storefront/cms-structure/page/component/services/component-data.provider.ts` | `ComponentDataProvider`: unisce dati statici e dati CMS (interno) |
+| `core-libs/storefront/cms-structure/page/component/services/cx-api.service.ts` | `CxApiService`: facade esposti ai web component (interno) |
+| `core-libs/storefront/cms-structure/page/component/events/component.event.ts` | `ComponentEvent`, `ComponentCreateEvent`, `ComponentDestroyEvent` |
+| `core-libs/storefront/cms-structure/page/model/cms-component-data.ts` | `CmsComponentData<T>` |
+| `core-libs/storefront/cms-structure/services/cms-components.service.ts` | `CmsComponentsService`: mapping (anche da feature lazy), SSR, child routes, guard, i18n, defer, dati statici |
+| `core-libs/storefront/cms-structure/services/cms-features.service.ts` | `CmsFeaturesService`: feature module CMS e loro config |
+| `core-libs/storefront/cms-structure/services/cms-guards.service.ts` | `CmsGuardsService`: guard dichiarate dai componenti della pagina |
+| `core-libs/storefront/cms-structure/services/guards-composer.ts` | `GuardsComposer` e tipi `CanActivate`, `CanActivateObservable` |
+| `core-libs/storefront/cms-structure/services/cms-i18n.service.ts` | `CmsI18nService`: chunk i18n dei componenti |
+| `core-libs/storefront/cms-structure/services/cms-routes.service.ts` | `CmsRoutesService` (astratto pubblico, `useExisting` impl) |
+| `core-libs/storefront/cms-structure/services/cms-routes-impl.service.ts` | `CmsRoutesImplService` (interno): child route CMS con `resetConfig` |
+| `core-libs/storefront/cms-structure/services/utils.ts` | `isCanActivate` (interno) |
+| `core-libs/storefront/cms-structure/utils/cms-structure.util.ts`, `core-libs/storefront/cms-structure/utils/cms-structure.model.ts` | `provideCmsStructure`, `PageSection`, `CmsStructureOptions` |
+| `core-libs/storefront/cms-structure/cms-lcp-context/*` | `CmsLcpModule`, `CmsLcpService`, `LcpCmsComponentsConfig`, `provideLcpPresenceForCmsComponent` |
+| `core-libs/storefront/shared/lcp-context/*` | `LCP_PRESENCE`, `LcpPresence`, `LcpContextDirective`, `ProvideLcpPresenceDirective`, `LcpPresenceMappingService` |
+| `core-libs/storefront/cms-pages/product-details-page/*` | `ProductDetailsPageModule`, `PRODUCT_DETAILS_URL_MATCHER` |
+| `core-libs/storefront/cms-pages/product-listing-page/*` | `ProductListingPageModule`, `PRODUCT_LISTING_URL_MATCHER` |
 
 Collaboratori fuori dal perimetro del capitolo ma citati spesso: `OutletDirective` ([cap. 17](../parte-2/17-outlet.md)), `BreakpointService` e `LayoutConfig` ([cap. 18](../parte-2/18-layout-breakpoint-a11y.md)), `CmsPageGuard` e routing ([cap. 14](../parte-2/14-routing.md)), `FeatureModulesService` e `UnifiedInjector` ([cap. 12](../parte-2/12-feature-module-lazy.md)).
 
@@ -129,7 +129,7 @@ La ricerca della config passa da `getSlotConfig` (`core-libs/storefront/cms-stru
 
 `getSlotConfigForSection` (`core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts:L175-L210`) cerca prima `layoutSlots[template][section]`, poi la config globale `layoutSlots[section]`; ma se il template corrente non ha alcuna voce in `layoutSlots`, esce subito con `undefined` (L181-L185). Dopo la risoluzione responsive, se l'attributo manca prova `pageTemplateConfig[section]` e poi `layoutSlots[section]` (L201-L209).
 
-`getResponsiveSlotConfig` (`core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts:L217-L243`) usa la config del breakpoint corrente se contiene l'attributo; altrimenti scorre i breakpoint **precedenti** nell'elenco ordinato di `BreakpointService.breakpoints` (ordinati per dimensione dello schermo: `core-libs/storefront/layout/breakpoint/breakpoint.service.ts:L54-L65`) e tiene l'ultimo che ha l'attributo; in mancanza, la config "piatta".
+`getResponsiveSlotConfig` (`core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts:L217-L243`) usa la config del breakpoint corrente se contiene l'attributo; altrimenti scorre i breakpoint **precedenti** nell'elenco ordinato di `BreakpointService.breakpoints` (ordinati per dimensione dello schermo, dal più piccolo al più grande: `core-libs/storefront/layout/breakpoint/breakpoint.service.ts:L54-L65`; l'ordine crescente si vede in `isDown`, che considera "più piccoli o uguali" i breakpoint fino all'indice incluso, `core-libs/storefront/layout/breakpoint/breakpoint.service.ts:L89-L97`) e tiene l'ultimo che ha l'attributo; in mancanza, la config "piatta".
 
 `getPageFoldSlot(pageTemplate)` applica la stessa risoluzione responsive all'attributo `pageFold` di `layoutSlots[pageTemplate]` (`core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts:L88-L104`).
 
@@ -847,7 +847,7 @@ export const provideLcpPresenceForCmsComponent = (): FactoryProvider => {
 
 Valori degli enum usati: `BREAKPOINT` = `xs`, `sm`, `md`, `lg`, `xl` (`core-libs/storefront/layout/config/layout-config.ts:L22-L28`); `DeferLoadingStrategy.DEFER = 'DEFERRED-LOADING'`, `INSTANT = 'INSTANT-LOADING'` (`core-libs/core/src/cms/config/cms-config.ts:L96-L101`).
 
-Esempio di configurazione (illustrativo, costruito con le sole chiavi documentate sopra; i nomi `MyBannerComponent` e `my-banner.component` non esistono nel repo):
+Esempio di configurazione (illustrativo, costruito con le sole chiavi documentate sopra; i nomi MyBannerComponent e my-banner.component non esistono nel repo):
 
 ```ts
 provideConfig(<LayoutConfig & CmsConfig>{
@@ -989,7 +989,7 @@ Elenchi trasversali: [Appendice A01 — injection token](../appendici/A01-inject
    La guard chiama `handleCmsRoutesInGuard`: `updateRouting` antepone a `router.config` una route `faq` con `PageLayoutComponent`, le child route e `data.cxCmsRouteContext`, poi rinaviga con `navigateByUrl` e ritorna `false`. Alla nuova navigazione la route ha `cxCmsRouteContext` e il passo viene saltato. — `core-libs/storefront/cms-structure/services/cms-routes-impl.service.ts:L69-L124`, `core-libs/storefront/cms-structure/guards/cms-page-guard.service.ts:L86-L95`
 
 9. **In che ordine vengono eseguite le guard dichiarate dai componenti della pagina, e quando si fermano?**
-   In sequenza (`concat`): i `true` vengono saltati, il primo `false`/`UrlTree` è il risultato; se tutte ritornano `true` si emette `true` (`endWith(true)`). Senza guard: `of(true)`. — `core-libs/storefront/cms-structure/services/guards-composer.ts:L39-L49`, `:L78-L86`
+   In sequenza (`concat`): i `true` vengono saltati, il primo `false`/`UrlTree` è il risultato; se tutte ritornano `true` si emette `true` (`endWith(true)`). Senza guard: `of(true)`. — `core-libs/storefront/cms-structure/services/guards-composer.ts:L39-L51`, `:L78-L86`
 
 10. **Come fa un componente CMS a sapere che contiene l'elemento LCP, senza codice specifico?**
     L'injector per componente fornisce `LCP_PRESENCE` calcolato da `CmsLcpService` sull'`uid` (marker `__cxLCP__` o lista `lcpCmsComponents.ids`); nel template, `*cxLcpContext` lo trasforma in `fetchPriority$` (`HIGH` se `HAS_LCP`). — `core-libs/storefront/cms-structure/cms-lcp-context/provide-lcp-presence-for-cms-component.ts:L20-L36`, `core-libs/storefront/cms-structure/cms-lcp-context/cms-lcp.service.ts:L50-L65`, `core-libs/storefront/shared/lcp-context/lcp-presence-mapping.service.ts:L14-L22`
