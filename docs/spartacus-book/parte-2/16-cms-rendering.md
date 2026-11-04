@@ -19,7 +19,7 @@ Il capitolo copre anche due argomenti collaterali assegnati agli stessi file: le
 
 ## 2. Mappa dei file
 
-Il barrel pubblico è `public_api.ts`, che riesporta `./cms-pages/index` (L22), `./cms-structure/index` (L23) e `./shared/index` (L29).
+Il barrel pubblico è `core-libs/storefront/public_api.ts`, che riesporta `./cms-pages/index` (L22), `./cms-structure/index` (L23) e `./shared/index` (L29).
 
 | Path | Ruolo |
 |---|---|
@@ -325,12 +325,12 @@ flowchart TD
 
 ```mermaid
 sequenceDiagram
-  participant W as "ComponentWrapperDirective"
-  participant CCS as "CmsComponentsService"
-  participant INJ as "CmsInjectorService"
-  participant HS as "ComponentHandlerService"
-  participant H as "Lazy/DefaultComponentHandler"
-  participant EV as "EventService"
+  participant W as ComponentWrapperDirective
+  participant CCS as CmsComponentsService
+  participant INJ as CmsInjectorService
+  participant HS as ComponentHandlerService
+  participant H as Lazy/DefaultComponentHandler
+  participant EV as EventService
   W->>CCS: determineMappings([flexType])
   CCS-->>W: types (dopo eventuale forkJoin feature)
   W->>CCS: shouldRender(flexType)
@@ -377,11 +377,11 @@ flowchart TD
 
 ```mermaid
 sequenceDiagram
-  participant PS as "PageSlotComponent"
-  participant CMS as "CmsService"
-  participant PSS as "PageSlotService"
-  participant O as "OutletDirective (flexType)"
-  participant DL as "DeferLoaderService"
+  participant PS as PageSlotComponent
+  participant CMS as CmsService
+  participant PSS as PageSlotService
+  participant O as OutletDirective (flexType)
+  participant DL as DeferLoaderService
   PS->>CMS: getContentSlot(position)
   CMS-->>PS: slot (distinctUntilChanged isDistinct)
   PS->>PS: decorate: classi, pending = n, attributi
@@ -393,7 +393,7 @@ sequenceDiagram
   DL-->>O: emit (subito se SSR o INSTANT)
   O->>O: build()
   O-->>PS: loaded(true) (asincrono)
-  PS->>PS: pending-- ; a 0 rimuove cx-pending
+  PS->>PS: pending-- e a 0 rimuove cx-pending
 ```
 
 ## 5. Estratti di codice reale
