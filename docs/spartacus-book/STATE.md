@@ -14,3 +14,4 @@
 ## Log
 - 23:24 UTC Fase 0 avviata
 - 23:28 UTC Fase 0 completata; Fase 1 avviata: 7 cartografi; COVERAGE.csv generato (8172 righe, 1210 escluse)
+- 23:33 UTC Fase 1 quasi completa (6/7 inventari), Fase 2: OUTLINE.md generato (51 capitoli + 12 appendici). Fase 3 avviata.
