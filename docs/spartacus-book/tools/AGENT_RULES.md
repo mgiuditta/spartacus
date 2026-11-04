@@ -20,3 +20,6 @@
 - Spartacus: `core-libs/core/src/config/config-tokens.ts:L12-L20`
 - Angular: `angular:packages/router/src/router.ts:L100-L130`
 - Usa sempre `:L<inizio>-L<fine>` (anche per riga singola: `:L12-L12`).
+
+## Sorgenti di dipendenze (pacchetti npm pubblicati, solo lettura)
+In `/tmp/deps/<pacchetto>-<versione>/package/` ci sono i pacchetti estratti: `angular-ssr-21.2.23` (@angular/ssr: CommonEngine, AngularNodeAppEngine — codice compilato in fesm2022), `ngrx-store-21.0.1`, `ngrx-effects-21.0.1`, `ngrx-router-store-21.0.1`, `angular-oauth2-oidc-20.0.2`, `rxjs-7.8.2`, `i18next-25.7.4`. Riferimenti con prefisso `deps:` + path relativo a `/tmp/deps`, es. `deps:ngrx-store-21.0.1/package/fesm2022/ngrx-store.mjs:L100-L120`. Usali per confermare comportamenti prima marcati ⚠️ DA VERIFICARE per "node_modules mancante".

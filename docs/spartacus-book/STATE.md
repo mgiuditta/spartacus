@@ -16,3 +16,4 @@
 - 23:28 UTC Fase 0 completata; Fase 1 avviata: 7 cartografi; COVERAGE.csv generato (8172 righe, 1210 escluse)
 - 23:33 UTC Fase 1 quasi completa (6/7 inventari), Fase 2: OUTLINE.md generato (51 capitoli + 12 appendici). Fase 3 avviata.
 - 23:45 UTC Fase 3: Counter({'todo': 43, 'dossier': 8})
+- 23:46 Limite 20 agenti concorrenti. Coda: W01, A26, A27, A28, A29, A30, A31, A32, A33, A34, A35, A36, A37, A38, A39, A40, A42, A43, A44, A45, A46, A47, A02, A03, A04, A06, A08, A50-54

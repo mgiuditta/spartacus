@@ -32,16 +32,10 @@ def main():
             members = []
             t = T.read(f)
             for e in ents:
-                val = t[e['vs']:e['ve']].strip() if e['kind'] != 'shorthand' else ''
-                key = e['key'] if e['kind'] != 'shorthand' else e['key'].split('=')[0].strip()
-                if e['kind'] == 'shorthand' and '=' in e['key']:
-                    key, val = [x.strip() for x in e['key'].split('=', 1)]
-                if e['kind'] == 'str':
-                    pass
-                # sintassi enum: KEY = 'value'  -> KEY_RE (che cerca ':') non applica, quindi kind=shorthand
-                mm = re.fullmatch(r'''([A-Za-z_$][\w$]*)\s*=\s*(['"])(.*)\2''', t[e['ks']:e['ve']].strip(), re.S)
-                if mm:
-                    key, val = mm.group(1), mm.group(3)
+                # sintassi enum `KEY = 'value'` (KEY_RE cerca ':' quindi l'entry arriva come 'shorthand')
+                seg = t[e['ks']:e['ve']].strip()
+                mm = re.fullmatch(r'''([A-Za-z_$][\w$]*)\s*=\s*(['"])(.*)\2''', seg, re.S)
+                key, val = (mm.group(1), mm.group(3)) if mm else (seg, '⚠️ valore non letterale')
                 members.append(dict(key=key, val=val, ref=T.ref(f, e['ks'], e['ve'])))
             enums.append(dict(name=m.group(1), file=f, aug=aug, members=members, ref=T.ref(f, m.start(), cb)))
     enum_by_lower = defaultdict(list)

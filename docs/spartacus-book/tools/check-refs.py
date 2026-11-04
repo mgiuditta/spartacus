@@ -9,7 +9,7 @@ Exit code 1 se errori."""
 import os, re, sys, glob, subprocess, json, functools
 REPO='/home/user/spartacus'; NG='/tmp/angular'
 here=os.path.dirname(os.path.abspath(__file__)); book=os.path.dirname(here)
-REF=re.compile(r'(angular:)?((?:[\w@.-]+/)+[\w@.-]+\.(?:ts|scss|html|json|js|mjs|cjs|md|sh|yml|yaml|bazel))(?::L?(\d+)(?:\s*[-–]\s*L?(\d+))?)?')
+REF=re.compile(r'(angular:|deps:)?((?:[\w@.-]+/)+[\w@.-]+\.(?:ts|scss|html|json|js|mjs|cjs|md|sh|yml|yaml|bazel|d\.ts))(?::L?(\d+)(?:\s*[-–]\s*L?(\d+))?)?')
 CODE=re.compile(r'`([^`\n]+)`')
 SYM=re.compile(r'^(?:[A-Z][A-Za-z0-9]+|[A-Z][A-Z0-9_]{3,}|[a-z][A-Za-z0-9]+\(\))$')
 @functools.lru_cache(None)
@@ -19,6 +19,8 @@ def nlines(p):
     except Exception: return None
 @functools.lru_cache(None)
 def resolve(path, ng):
+    if ng=='deps:':
+        p=os.path.join('/tmp/deps',path); return p if os.path.isfile(p) else None
     roots=[NG] if ng else [REPO, NG]
     for r in roots:
         p=os.path.join(r,path)
@@ -52,10 +54,10 @@ def check(md):
                 key=(path,a,b)
                 if key in seen: continue
                 seen.add(key)
-                p=resolve(path, bool(ng))
+                p=resolve(path, ng or '')
                 if not p:
                     if '*' in path or '<' in path: continue
-                    errs.append(f'{md}:{i}: file inesistente: {"angular:" if ng else ""}{path}'); continue
+                    errs.append(f'{md}:{i}: file inesistente: {ng or ""}{path}'); continue
                 if a:
                     n=nlines(p); x=int(a); y=int(b) if b else x
                     if not (1<=x<=y<=n): errs.append(f'{md}:{i}: range non valido {path}:L{x}-L{y} (file ha {n} righe)')
