@@ -44,18 +44,18 @@ def main():
     rx_obj = re.compile(r'\b([A-Za-z_$][\w$.]*)\s*\(\s*\{')
     rx_reg = re.compile(r'\b([A-Za-z_$][\w$]*)\.register\s*\(\s*([A-Z][\w$]*)\s*[,)]')
     rx_disp = re.compile(r'\.dispatch\s*\(\s*(?:new\s+([A-Z][\w$]*)|createFrom\s*\(\s*([A-Z][\w$]*))')
-    rx_disp2 = re.compile(r'\.dispatch\s*(?:<[^>]*>)?\s*\(')
+    rx_disp2 = re.compile(r'\b[\w$]*dispatch\w*\s*(?:<[^>]*>)?\s*\(', re.I)
+    rx_new = re.compile(r'\bnew\s+([A-Z][\w$]*)\s*[(<]')
+    news = defaultdict(list)
     disp = defaultdict(list)
     for f in files:
         code, nostr = T.masks(f)
         if 'register' in code or 'event' in code:
             for m in rx_obj.finditer(code):
                 callee = m.group(1)
-                if 'register' not in callee.lower():
-                    continue
                 ents, cb = T.object_entries(f, m.end() - 1)
                 d = {x['key']: T.squash(code[x['vs']:x['ve']]) for x in ents}
-                if 'event' in d and d['event'] in names:
+                if 'event' in d and d['event'] in names and ('register' in callee.lower() or 'action' in d):
                     regs[d['event']].append(dict(how=callee.split('.')[-1] if callee.startswith('this.') else callee,
                                                  action=d.get('action', ''), factory='factory' in d,
                                                  ref=T.ref(f, m.start(), cb), file=f))
@@ -63,7 +63,7 @@ def main():
                 if m.group(2) in names and m.group(1).lower().endswith('eventservice'):
                     regs[m.group(2)].append(dict(how=f'{m.group(1)}.register', action='', factory=False,
                                                  ref=T.ref(f, m.start(), m.end()), file=f))
-        if 'dispatch' in code:
+        if True:
             for m in rx_disp.finditer(code):
                 n = m.group(1) or m.group(2)
                 if n in names:
@@ -73,10 +73,16 @@ def main():
                 ob = m.end() - 1
                 cb = T.match(nostr, ob)
                 parts = T.split_top(nostr, ob + 1, cb)
-                if len(parts) >= 2:
-                    n = code[parts[1][0]:parts[1][1]].strip()
+                for pi, (a, b) in enumerate(parts[:2]):
+                    n = code[a:b].strip()
                     if n in names:
                         disp[n].append(T.ref(f, m.start()))
+                        break
+        for m in rx_new.finditer(code):
+            if m.group(1) in names:
+                news[m.group(1)].append(T.ref(f, m.start()))
+    for k in disp:
+        disp[k] = sorted(set(disp[k]))
     rows = sorted(events.values(), key=lambda e: (T.lib_root(e['f']) != 'core-libs/core', e['f'], e['c']['start']))
     regd = {n for n in regs}
     counts = [
@@ -88,20 +94,23 @@ def main():
         ('Classi con almeno una registrazione rilevata', len(regd)),
         ('Siti di registrazione rilevati (totale)', sum(len(v) for v in regs.values())),
         ('Classi con almeno un `dispatch` rilevato', len(disp)),
+        ('Classi istanziate con `new X(` in ambito', len(news)),
+        ('Classi senza registrazione, dispatch né `new` rilevati', sum(1 for e in rows if e['c']['name'] not in regs and e['c']['name'] not in disp and e['c']['name'] not in news)),
         ('Entry point coinvolti', len({T.library(e['f']) for e in rows})),
     ]
     intro = ('Le classi evento sono individuate risalendo ricorsivamente le clausole `extends` a partire da '
              '`CxEvent` (`core-libs/core/src/event/cx-event.ts`). "Profondità" = distanza da `CxEvent`. '
-             '"Registrazioni" individua (a) chiamate `xxxregister*({ action, event: X, ... })` — '
-             '`stateEventService.register` o helper come `registerMapped` — con `action` mostrata, e '
+             '"Registrazioni" individua (a) chiamate `f({ action, event: X, ... })` (oggetto con `event` e `action`, o callee '
+             'con "register" nel nome) — `stateEventService.register` o helper come `registerMapped`/'
+             '`buildRestoreSavedCartEvents` — con `action` mostrata, e '
              '(b) `<...>eventService.register(X, source$)`. "Dispatch" conta `.dispatch(new X(...))`, '
              '`.dispatch(createFrom(X, ...))` e `.dispatch(obj, X)`. Eventi senza registrazione/dispatch possono essere '
              'classi padre astratte, emessi tramite builder generici o registrati con forme non rilevate '
              '(⚠️ in tal caso verificare sul codice).')
     L = T.header('Appendice A07 — Eventi (`CxEvent`)', 'a07_events.py', counts, intro=intro)
     L += ['## Tabella — Classi evento', '',
-          '| # | Classe | `static type` | Classe padre | Prof. | Abstract | Figli | Registrazioni | Dispatch | Libreria | Riferimento |',
-          '|---|---|---|---|---|---|---|---|---|---|---|']
+          '| # | Classe | `static type` | Classe padre | Prof. | Abstract | Figli | Registrazioni | Dispatch | `new` | Libreria | Riferimento |',
+          '|---|---|---|---|---|---|---|---|---|---|---|---|']
     for i, e in enumerate(rows, 1):
         n = e['c']['name']
         rg = regs.get(n, [])
@@ -109,9 +118,10 @@ def main():
             f"{r['how']}" + (f" ← `{r['action']}`" if r['action'] else '') + (' (factory)' if r['factory'] else '')
             + f" `{r['ref']}`" for r in rg)
         ds = '<br>'.join(f'`{x}`' for x in disp.get(n, []))
-        L.append('| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | `{}` |'.format(
+        nw = '<br>'.join(f'`{x}`' for x in news.get(n, []))
+        L.append('| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | `{}` |'.format(
             i, T.code_cell(n), T.code_cell(e['type']), T.code_cell(e['c']['extends'] or ''), e['depth'],
-            'sì' if e['abstract'] else '', children.get(n, '') or '', rgs, ds,
+            'sì' if e['abstract'] else '', children.get(n, '') or '', rgs, ds, nw,
             T.code_cell(T.library(e['f'])), T.ref(e['f'], e['c']['start'], e['c']['cb'])))
     dup = defaultdict(list)
     for e in rows:
