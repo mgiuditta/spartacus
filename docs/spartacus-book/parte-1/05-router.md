@@ -430,7 +430,7 @@ function runCanActivate(
 
 ### 5.5 `getSuffixUrlMatcher`
 
-`core-libs/storefront/cms-structure/routing/suffix-routes/suffix-url-matcher.ts:L28-L48`
+`core-libs/storefront/cms-structure/routing/suffix-routes/suffix-url-matcher.ts:L27-L48`
 ```ts
   precedingParamName = precedingParamName || 'param';
   const matcher = function suffixUrlMatcher(
@@ -722,7 +722,7 @@ Note di superficie pubblica (dal dossier): `CustomSerializer`, `reducer` e `Rout
 
 ## 10. Come fare debug
 
-- **Tracciare la pipeline.** `RouterModule.forRoot` accetta `enableTracing` (opzione Angular non letta nel dossier): ⚠️ DA VERIFICARE nel sorgente Angular prima di usarla. In alternativa, sottoscriversi a `router.events` e loggare `NavigationStart`, `RoutesRecognized`, `GuardsCheckStart`, `GuardsCheckEnd`, `NavigationCancel` (campo `code`) e `NavigationEnd`: gli eventi pubblici sono quelli di `EventType` — `angular:packages/router/src/events.ts:L33-L51`. Una cancellazione `GuardRejected` subito seguita da una nuova `NavigationStart` verso lo stesso URL indica `handleCmsRoutesInGuard` (§9.7).
+- **Tracciare la pipeline.** `RouterModule.forRoot` accetta `enableTracing`, che in dev mode attiva `withDebugTracing()` e logga in console tutti gli eventi interni — `angular:packages/router/src/router_config.ts:L205-L210`, `angular:packages/router/src/router_module.ts:L136-L141` — ma `AppRoutingModule` non lo imposta e le sue opzioni sono fisse — `core-libs/storefront/router/app-routing.module.ts:L13-L19`. La via più semplice è sottoscriversi a `router.events` e loggare `NavigationStart`, `RoutesRecognized`, `GuardsCheckStart`, `GuardsCheckEnd`, `NavigationCancel` (campo `code`) e `NavigationEnd`: gli eventi pubblici sono quelli di `EventType` — `angular:packages/router/src/events.ts:L33-L51`. Una cancellazione `GuardRejected` subito seguita da una nuova `NavigationStart` verso lo stesso URL indica `handleCmsRoutesInGuard` (§9.7).
 - **Ispezionare la config effettiva.** Dopo il bootstrap, `inject(Router).config` contiene le route già trasformate. In dev mode i matcher hanno proprietà di debug: `_paths` (`getFromPaths`), `_matchers` (`getCombined`), `_suffixRouteConfig` (`getSuffixUrlMatcher`) — `core-libs/core/src/routing/services/url-matcher.service.ts:L33-L40`, `core-libs/core/src/routing/services/url-matcher.service.ts:L59-L61`, `core-libs/storefront/cms-structure/routing/suffix-routes/suffix-url-matcher.ts:L50-L52`. Se una route ha `matcher: falsyUrlMatcher`, è `disabled` — `core-libs/core/src/routing/services/url-matcher.service.ts:L24-L28`. L'ultima route deve essere la catch-all `**`.
 - **Warning in console (dev mode).** "No path was configured for the named route '…'!" — `core-libs/core/src/routing/configurable-routes/routing-config.service.ts:L26-L34`; "Could not configure the named route '…'" — `core-libs/core/src/routing/configurable-routes/configurable-routes.service.ts:L153-L179`; path duplicati — `core-libs/core/src/routing/configurable-routes/routing-config.service.ts:L83-L90`.
 - **Store `router` con Redux DevTools.** Sequenza attesa: `@ngrx/router-store/request` → `@ngrx/router-store/navigation` (popola `nextState`) → eventuale `[Router] Change Next PageContext` (pagina not found) → `@ngrx/router-store/navigated` oppure `cancel`/`error` — `deps:ngrx-router-store-21.0.1/package/fesm2022/ngrx-router-store.mjs:L217-L256`, `core-libs/core/src/routing/store/actions/router.action.ts:L10-L15`. Controllare `nextState.context` (tipo e id della pagina) e `cmsRequired`.
