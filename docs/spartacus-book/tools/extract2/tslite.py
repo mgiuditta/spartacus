@@ -468,3 +468,16 @@ def class_members(path, cls, names):
                     res.append((m.group(1), j))
         j += 1
     return res
+
+
+def import_source(path, name):
+    """Specificatore del modulo da cui `name` è importato nel file (o 'stesso file' / '')."""
+    code, _ = masks(path)
+    t = read(path)
+    for m in re.finditer(r'\bimport\s+(?:type\s+)?\{([^}]*)\}\s*from\s*[\'"]([^\'"]+)[\'"]', t):
+        names = [x.strip().split(' as ')[-1].strip() for x in m.group(1).split(',')]
+        if name in names:
+            return m.group(2)
+    if re.search(r'\bclass\s+' + re.escape(name) + r'\b', code):
+        return 'stesso file'
+    return ''

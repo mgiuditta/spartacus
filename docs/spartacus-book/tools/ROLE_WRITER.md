@@ -13,3 +13,4 @@ Requisiti:
 - Il non verificabile marcato `⚠️ DA VERIFICARE` con motivo.
 - Link relativi ad altri capitoli: `../parte-2/15-cms-core.md` ecc. (slug da OUTLINE.md).
 Rispondi con: righe scritte, numero diagrammi, numero DA VERIFICARE.
+- Prima di consegnare esegui `python3 tools/check-refs.py <tuo-capitolo.md>` e correggi TUTTI gli errori segnalati (file:riga non validi, simboli non trovati, link rotti). Zero errori richiesti.
