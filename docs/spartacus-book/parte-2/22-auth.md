@@ -670,7 +670,7 @@ Il token `USE_AUTHORIZATION_CODE_FLOW_BY_DEFAULT` è deprecato dalla 221121.1 a 
 | `USE_CLIENT_TOKEN` + `InterceptorUtil` | marcare richieste di un adapter custom per usare il client token | `core-libs/core/src/occ/utils/interceptor-util.ts:L9-L9` | `../parte-3/52-ricette-occ-dati.md` (adapter custom) |
 | `FederatedLoginConfig` | `provideConfig({ federatedLogin: {...} })` | `core-libs/core/src/federated-login/config/federated-login-config.ts:L10-L47` | `../parte-3/50-ricette-config-di.md` |
 
-Esempio minimo di handler (solo simboli esportati: `ExpiredRefreshTokenHandler` ed `EXPIRED_REFRESH_TOKEN_HANDLERS` sono nel barrel dei servizi `user-auth`, riesportato da `@spartacus/core` — `core-libs/core/public_api.ts:L11-L11`, `core-libs/core/src/auth/index.ts:L7-L9`). È uno schizzo illustrativo, non codice del repository:
+Esempio minimo di handler (solo simboli esportati: `ExpiredRefreshTokenHandler` ed `EXPIRED_REFRESH_TOKEN_HANDLERS` sono nel barrel dei servizi `user-auth`, riesportato da `@spartacus/core` — `core-libs/core/src/auth/user-auth/services/index.ts:L9-L10`, `core-libs/core/src/auth/user-auth/index.ts:L20-L20`, `core-libs/core/src/auth/index.ts:L7-L9`, `core-libs/core/public_api.ts:L11-L11`). È uno schizzo illustrativo, non codice del repository:
 
 ```ts
 // esempio illustrativo

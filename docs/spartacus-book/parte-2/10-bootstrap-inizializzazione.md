@@ -38,7 +38,7 @@ Il capitolo copre anche le **recipes** (`core-libs/storefront/recipes`, `core-li
 | `core-libs/core/public_api.ts` | Entry point di `@spartacus/core`: re-export di tutti i sotto-moduli (incluso `./src/base-core.module`) e blocco `AUGMENTABLE_TYPES_START/END` (`core-libs/core/public_api.ts:L10-L58`). |
 | `core-libs/core/src/base-core.module.ts` | `BaseCoreModule`: aggrega 17 moduli core in un ordine esplicito; `forRoot()` senza provider propri (`core-libs/core/src/base-core.module.ts:L26-L53`). |
 | `core-libs/storefront/base-storefront.module.ts` | `BaseStorefrontModule`: importa `BaseCoreModule.forRoot()` per primo, poi infrastruttura CMS/layout/routing/media/outlet; nessun `forRoot()` (`core-libs/storefront/base-storefront.module.ts:L26-L49`). |
-| `core-libs/storefront/public_api.ts` | Entry point di `@spartacus/storefront`: triple-slash reference a `types.d.ts`, export di `base-storefront.module`, `recipes`, `router`, blocco `AUGMENTABLE_TYPES` (`core-libs/storefront/public_api.ts:L7-L36`). |
+| `core-libs/storefront/public_api.ts` | Entry point di `@spartacus/storefront`: triple-slash reference a `types.d.ts`, export di `base-storefront.module`, `recipes`, `router`, blocco `AUGMENTABLE_TYPES_START/END` (`core-libs/storefront/public_api.ts:L7-L36`). |
 | `core-libs/storefront/recipes/index.ts`, `core-libs/storefront/recipes/config/index.ts` | Barrel delle recipe storefront: `default-media.config`, `layout-config`, `static-cms-structure` (`core-libs/storefront/recipes/config/index.ts:L7-L9`). |
 | `core-libs/storefront/recipes/config/default-media.config.ts` | `mediaConfig`: formati immagine e `<picture>` (`core-libs/storefront/recipes/config/default-media.config.ts:L9-L38`). |
 | `core-libs/storefront/recipes/config/layout-config.ts` | `layoutConfig` (deprecato) e `layoutConfigFactory()` (header unificato, niente `pageFold`) (`core-libs/storefront/recipes/config/layout-config.ts:L13-L198`). |
@@ -237,34 +237,34 @@ Ne deriva una catena di dipendenze interessante: lo scope `routing` si chiude so
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Main as "main.ts"
-    participant NG as "bootstrapApplication / internalCreateApplication"
-    participant Inj as "EnvironmentInjector (R3Injector)"
-    participant Init as "ApplicationInitStatus"
-    participant CIS as "ConfigInitializerService"
-    participant RT as "Router (enabledBlocking)"
-    participant App as "ApplicationRef"
+    participant Main as main.ts
+    participant NG as bootstrapApplication / internalCreateApplication
+    participant Inj as EnvironmentInjector (R3Injector)
+    participant Init as ApplicationInitStatus
+    participant CIS as ConfigInitializerService
+    participant RT as Router (enabledBlocking)
+    participant App as ApplicationRef
 
-    Main->>NG: "bootstrapApplication(AppComponent, appConfig)"
-    NG->>Inj: "crea injector (runEnvironmentInitializers: false)"
-    NG->>Inj: "resolveInjectorInitializers()"
-    Note over Inj: "inject(NgModule) eager<br/>ConfigModule -> ConfigurationService -> Config (static merge)"
-    NG->>Init: "runInitializers() (ciclo sincrono)"
-    Init->>CIS: "configInitializerFactory: initialize(CONFIG_INITIALIZER[])"
-    CIS-->>Init: "Promise (configFactory in parallelo)"
-    Init->>CIS: "initializeContext: getStable('context')"
-    Init->>Init: "language/currency/baseSite initialize() (non attese)"
-    Init->>Inj: "initConfigurableRoutes: router.resetConfig(...)"
-    Init->>Inj: "addCmsRoute: router.config.push(path '**')"
-    Init->>RT: "APP_INITIALIZER router: get(LOCATION_INITIALIZED)"
-    RT->>CIS: "LOCATION_INITIALIZED_MULTI: getStable() (tutti gli scope)"
-    CIS-->>RT: "config stabile"
-    RT->>RT: "router.initialNavigation() fino a afterPreactivation"
-    RT-->>Init: "resolve(true)"
-    Init-->>NG: "donePromise risolta"
-    NG->>App: "setLocaleId + appRef.bootstrap(AppComponent)"
-    App->>RT: "bootstrap listener: BOOTSTRAP_DONE.complete()"
-    RT->>App: "attivazione rotta '**' -> PageLayoutComponent in router-outlet"
+    Main->>NG: bootstrapApplication(AppComponent, appConfig)
+    NG->>Inj: crea injector (runEnvironmentInitializers: false)
+    NG->>Inj: resolveInjectorInitializers()
+    Note over Inj: inject(NgModule) eager<br/>ConfigModule -> ConfigurationService -> Config (static merge)
+    NG->>Init: runInitializers() (ciclo sincrono)
+    Init->>CIS: configInitializerFactory: initialize(CONFIG_INITIALIZER[])
+    CIS-->>Init: Promise (configFactory in parallelo)
+    Init->>CIS: initializeContext: getStable('context')
+    Init->>Init: language/currency/baseSite initialize() (non attese)
+    Init->>Inj: initConfigurableRoutes: router.resetConfig(...)
+    Init->>Inj: addCmsRoute: router.config.push(path '**')
+    Init->>RT: APP_INITIALIZER router: get(LOCATION_INITIALIZED)
+    RT->>CIS: LOCATION_INITIALIZED_MULTI: getStable() (tutti gli scope)
+    CIS-->>RT: config stabile
+    RT->>RT: router.initialNavigation() fino a afterPreactivation
+    RT-->>Init: resolve(true)
+    Init-->>NG: donePromise risolta
+    NG->>App: setLocaleId + appRef.bootstrap(AppComponent)
+    App->>RT: bootstrap listener: BOOTSTRAP_DONE.complete()
+    RT->>App: attivazione rotta '**' -> PageLayoutComponent in router-outlet
 ```
 
 Riferimenti dei passi: 1 `projects/storefrontapp/src/main.ts:L17-L17`; 2 `angular:packages/core/src/application/create_application.ts:L72-L79`; 3 `angular:packages/core/src/platform/bootstrap.ts:L89-L90`, `core-libs/core/src/config/config.module.ts:L13-L19`; 4 `angular:packages/core/src/application/application_init.ts:L239-L256`; 5-6 `core-libs/core/src/config/config-initializer/config-initializer.module.ts:L24-L30`, `core-libs/core/src/config/config-initializer/config-initializer.service.ts:L154-L175`; 7 `core-libs/core/src/site-context/providers/context-service-providers.ts:L15-L21`; 8 `core-libs/core/src/site-context/providers/context-initializer-providers.ts:L12-L34`; 9 `core-libs/core/src/routing/configurable-routes/configurable-routes.service.ts:L48-L52`; 10 `core-libs/storefront/cms-structure/routing/cms-route/add-cms-route.ts:L18-L25`; 11-12 `angular:packages/router/src/provide_router.ts:L445-L451`, `core-libs/core/src/routing/routing.module.ts:L66-L71`, `core-libs/core/src/config/config-initializer/config-initializer.module.ts:L60-L64`; 14-15 `angular:packages/router/src/provide_router.ts:L456-L469`; 16-17 `angular:packages/core/src/platform/bootstrap.ts:L143-L171`; 18 `angular:packages/router/src/provide_router.ts:L338-L342`; 19 `core-libs/storefront/cms-structure/routing/cms-route/add-cms-route.ts:L12-L16`. L'ordine relativo fra i passi 5-11 dipende dall'ordine dei multi-provider ⚠️ DA VERIFICARE (vedi §3.5).
@@ -696,15 +696,19 @@ export function addCmsRoute(injector: Injector): () => void {
 `core-libs/storefront/recipes/config/layout-config.ts:L187-L198`
 
 ```ts
+/**
+ * Factory for layout configuration.
+ */
 export function layoutConfigFactory(): LayoutConfig {
   const config: LayoutConfig = JSON.parse(JSON.stringify(layoutConfig));
+
   applyUnifiedHeaderSlots(config);
+
   applyWithoutPageFold(config);
+
   return config;
 }
 ```
-
-> Nota: le righe esatte dell'intestazione coprono la funzione completa come indicata nel dossier (F120); il corpo della funzione è riportato integralmente, eventuali righe di commento JSDoc nell'intervallo sono omesse.
 
 ---
 
