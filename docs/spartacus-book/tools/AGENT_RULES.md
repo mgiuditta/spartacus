@@ -2,6 +2,7 @@
 
 ## Contesto
 - Repo Spartacus: `/home/user/spartacus`, SHA `5b7a1c2bf2808d7380bc20596d10f4fa710c3da1`, branch `claude/spartacus-book`. NON modificare nulla fuori da `docs/spartacus-book/`. NON fare git commit/push (lo fa l'orchestratore). NON cambiare ref.
+- NB: HEAD del branch è avanti rispetto allo SHA solo per commit sotto `docs/spartacus-book/` (nessuna differenza nel codice): non serve verificarlo né segnalarlo.
 - Sorgenti Angular: `/tmp/angular` @ tag `v21.2.23`. Nei riferimenti usa il prefisso `angular:` + path relativo, es. `angular:packages/core/src/di/r3_injector.ts:L120-L140`.
 - OUT_DIR: `/home/user/spartacus/docs/spartacus-book`.
 - Versioni: Angular 21.2.x, NgRx 21.0.x, RxJS 7.8, TypeScript 5.9, Node 22. Spartacus 2612.0.0.
