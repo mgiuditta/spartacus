@@ -161,7 +161,7 @@ In pratica il backend assegna un id di personalizzazione alla prima risposta; lo
 2. **Parse dell'URL.** `isLaunchedInSmartEdit()` separa `location.path()` su `?`, cerca il parametro che inizia con `cmsTicketId=` e ne prende il valore con `split('=')[1]` (`feature-libs/smartedit/root/services/smart-edit-launcher.service.ts:L61-L72`).
 3. **Pagina iniziale.** Se l'ultimo segmento del path è `storefrontPreviewRoute` **e** c'è un `cmsTicketId`, il ticket è persistito in `sessionStorage` (chiave `smartedit.cmsTicketId`) e memorizzato (`feature-libs/smartedit/root/services/smart-edit-launcher.service.ts:L74-L89`, chiave a `feature-libs/smartedit/root/services/smart-edit-launcher.service.ts:L27-L32`).
 4. **Fallback da sessionStorage.** Altrimenti il ticket viene ripristinato da `sessionStorage` e la sua sola presenza basta per considerarsi "in SmartEdit" — il caso d'uso dichiarato sono i redirect full-page, ad esempio il flusso OIDC di CDC (`feature-libs/smartedit/root/services/smart-edit-launcher.service.ts:L91-L96`). Persistenza e ripristino sono saltati fuori dal browser, per evitare il `SecurityError` in SSR (`feature-libs/smartedit/root/services/smart-edit-launcher.service.ts:L98-L118`).
-5. **Caricamento.** Se in SmartEdit, `load()` risolve la feature `smartEdit` (lazy load di `SmartEditModule`) e inserisce lo script `webApplicationInjector.js` dalla cartella `assets` dell'app (src relativo) con `id: 'text/smartedit-injector'` e `data-smartedit-allow-origin` preso dalla config (`feature-libs/smartedit/root/services/smart-edit-launcher.service.ts:L43-L56`). `ScriptLoader` mette in `setAttribute` solo le chiavi che iniziano con `data-`; le altre (qui `id`) diventano proprietà del DOM element (`core-libs/core/src/util/script-loader.service.ts:L70-L82`). Il file `webApplicationInjector.js` è minificato ("Version: 0.0.5") e fa parte degli asset pubblicati da ng-packagr (`feature-libs/smartedit/assets/webApplicationInjector.js:L1-L2`, `feature-libs/smartedit/ng-package.json:L7-L11`).
+5. **Caricamento.** Se in SmartEdit, `load()` risolve la feature `smartEdit` (lazy load di `SmartEditModule`) e inserisce lo script con `src: 'assets/webApplicationInjector.js'` (path relativo hardcoded) con `id: 'text/smartedit-injector'` e `data-smartedit-allow-origin` preso dalla config (`feature-libs/smartedit/root/services/smart-edit-launcher.service.ts:L43-L56`). `ScriptLoader` usa `setAttribute` per le chiavi che iniziano con `data-` (e, solo con `disableKeyRestriction`, per quelle che non sono proprietà dello `<script>`); le altre diventano proprietà del DOM element. SmartEdit non passa `disableKeyRestriction`, quindi `id` diventa `script.id` (`core-libs/core/src/util/script-loader.service.ts:L70-L82`). Il file `webApplicationInjector.js` è minificato ("Version: 0.0.5") e fa parte degli asset pubblicati da ng-packagr (`feature-libs/smartedit/assets/webApplicationInjector.js:L1-L2`, `feature-libs/smartedit/ng-package.json:L7-L11`).
 6. **`resolveFeature`.** `FeatureModulesService.resolveFeature` restituisce un errore "No module defined for Feature Module ..." se la feature non ha `module`; altrimenti risolve dipendenze e modulo con `shareReplay()` (`core-libs/core/src/lazy-loading/feature-modules.service.ts:L42-L73`). La demo configura `featureModules.smartEdit` con `import('@spartacus/smartedit')` → `SmartEditModule` (`projects/storefrontapp/src/app/spartacus/features/smartedit/smartedit-feature.module.ts:L14-L27`).
 
 ⚠️ DA VERIFICARE: l'URL esatto con cui SmartEdit apre lo storefront (`.../cx-preview?cmsTicketId=...`) è dedotto dal parsing in `feature-libs/smartedit/root/services/smart-edit-launcher.service.ts:L74-L89`; il protocollo di `webApplicationInjector.js` non è leggibile (file minificato di terze parti).
@@ -198,7 +198,7 @@ Il ticket permette al backend di restituire la versione *in anteprima* (staged) 
 2. **Lazy.** `QualtricsModule` importa `QualtricsComponentsModule` (`feature-libs/qualtrics/qualtrics.module.ts:L10-L13`), che importa i due componenti standalone, li mappa in `cmsComponents` e fornisce `defaultQualtricsConfig` (`feature-libs/qualtrics/components/qualtrics-components.module.ts:L14-L35`). Il default è `{ qualtrics: {} }`, cioè nessuno `scriptSource` (`feature-libs/qualtrics/components/qualtrics-loader/config/default-qualtrics-config.ts:L9-L11`).
 3. **Componente.** `QualtricsComponent` (`cx-qualtrics`, template vuoto) nel **costruttore** chiama `qualtricsLoader.addScript(scriptSource)` se configurato, altrimenti warning in dev (`feature-libs/qualtrics/components/qualtrics-loader/qualtrics.component.ts:L15-L33`). Il JSDoc di `QualtricsConfig` suggerisce di tenere lo script di deployment negli asset locali (`feature-libs/qualtrics/components/qualtrics-loader/config/qualtrics-config.ts:L10-L34`).
 4. **Service.** `QualtricsLoaderService` nel costruttore chiama `initialize()`, che sottoscrive `qsi$` e invoca `run()` a ogni emissione (`feature-libs/qualtrics/components/qualtrics-loader/qualtrics-loader.service.ts:L77-L83`, `feature-libs/qualtrics/components/qualtrics-loader/qualtrics-loader.service.ts:L113-L115`). `qsiLoaded$` è `fromEvent(window, 'qsi_js_loaded')` solo nel browser, altrimenti `EMPTY` (`feature-libs/qualtrics/components/qualtrics-loader/qualtrics-loader.service.ts:L55-L58`); `qsi$` passa per l'hook `isDataLoaded()`, prende `window.QSI`, filtra i falsy e salva in `qsiApi` (`feature-libs/qualtrics/components/qualtrics-loader/qualtrics-loader.service.ts:L66-L71`).
-5. **`addScript`.** Se lo script è già nel DOM (`script[src="..."]`) chiama `run(true)`, altrimenti lo inserisce con `scriptLoader.embedScript({ src })` (`feature-libs/qualtrics/components/qualtrics-loader/qualtrics-loader.service.ts:L91-L106`). Il secondo ramo copre la navigazione SPA: tornando su una pagina con il componente, lo script c'è già e serve solo rivalutare gli intercept.
+5. **`addScript`.** Se lo script è già nel DOM (`script[src="..."]`) chiama `run(true)`, altrimenti lo inserisce con `scriptLoader.embedScript({ src })` (`feature-libs/qualtrics/components/qualtrics-loader/qualtrics-loader.service.ts:L91-L106`). Il primo ramo (`run(true)`) copre la navigazione SPA: tornando su una pagina con il componente, lo script c'è già e serve solo scaricare e rivalutare gli intercept.
 6. **`run`.** Esce (log in dev) se `qsiApi.API` non c'è; con `reload` chiama `API.unload()`; poi `API.load().done(API.run())` (`feature-libs/qualtrics/components/qualtrics-loader/qualtrics-loader.service.ts:L123-L139`).
 7. **Hook.** `isDataLoaded()` è protected e di default `of(true)` (`feature-libs/qualtrics/components/qualtrics-loader/qualtrics-loader.service.ts:L141-L149`).
 8. **Componente embedded.** `QualtricsEmbeddedFeedbackComponent` (`cx-qualtrics-embedded-feedback`) ha template vuoto e nessuna logica (`feature-libs/qualtrics/components/qualtrics-embedded-feedback/qualtrics-embedded-feedback.component.ts:L9-L13`): è solo un segnaposto nel DOM in cui un intercept Qualtrics "embedded" può renderizzarsi. Anche il suo stile è un placeholder (`feature-libs/qualtrics/styles/_qualtrics-embedded-feedback.scss:L1-L4`).
@@ -290,7 +290,7 @@ flowchart TD
     E -->|"sì"| F["carica"]
     D --> F
     F --> G["resolveFeature('smartEdit') -> SmartEditModule"]
-    F --> H["embedScript webApplicationInjector.js (cartella assets) con data-smartedit-allow-origin"]
+    F --> H["embedScript assets/webApplicationInjector.js con data-smartedit-allow-origin"]
     G --> I["SmartEditCoreModule: provider decoratori + processCmsPage()"]
     I --> J["UnifiedInjector.getMulti vede i decoratori lazy"]
     J --> K["DynamicAttributeService.addAttributesToSlot/Component"]
@@ -599,7 +599,7 @@ export interface TmsCollector {
 ### 5.7 Configurazione TMS della demo
 
 ```ts
-// projects/storefrontapp/src/app/spartacus/features/tracking/personalization-feature.module.ts:L22-L48
+// projects/storefrontapp/src/app/spartacus/features/tracking/personalization-feature.module.ts:L22-L51
 @NgModule({
   imports: [
     BaseTmsModule.forRoot(),
@@ -635,7 +635,7 @@ export interface TmsCollector {
 ### 5.8 `OccPersonalizationIdInterceptor`
 
 ```ts
-// feature-libs/tracking/personalization/root/http-interceptors/occ-personalization-id.interceptor.ts:L29-L97
+// feature-libs/tracking/personalization/root/http-interceptors/occ-personalization-id.interceptor.ts:L29-L98
   constructor(
     private config: PersonalizationConfig,
     private occEndpoints: OccEndpointsService,
@@ -791,7 +791,7 @@ export class SmartEditRootModule {}
       this.featureModulesService.resolveFeature(SMART_EDIT_FEATURE).subscribe();
 
       this.scriptLoader?.embedScript({
-        // ... (src: lo script webApplicationInjector.js nella cartella assets, vedi testo)
+        src: 'assets/webApplicationInjector.js',
         params: undefined,
         attributes: {
           id: 'text/smartedit-injector',
@@ -1135,7 +1135,7 @@ Esempio illustrativo (non presente nel repo), che usa solo simboli esportati da 
 
 ```ts
 // esempio — non nel repo
-@Injectable({ providedIn: 'root' }) // obbligatorio: TmsService usa l'injector root (T3)
+@Injectable({ providedIn: 'root' }) // oppure fornito nei providers di un modulo eager: TmsService lo risolve dall'injector root (T3)
 export class MyTmsCollector implements TmsCollector {
   init(config: TmsCollectorConfig, w: WindowObject): void {
     const name = config.dataLayerProperty ?? 'myLayer';
@@ -1163,8 +1163,10 @@ Il funzionamento poggia su `feature-libs/tracking/tms/core/services/tms.service.
 // esempio — non nel repo
 @Injectable({ providedIn: 'root' })
 export class MyQualtricsLoaderService extends QualtricsLoaderService {
+  // inject() solo in un field initializer: isDataLoaded() gira dentro switchMap, fuori dall'injection context
+  protected activeCart = inject(ActiveCartFacade);
   protected isDataLoaded(): Observable<boolean> {
-    return inject(ActiveCartFacade).isStable(); // qualsiasi Observable<boolean>
+    return this.activeCart.isStable(); // qualsiasi Observable<boolean>
   }
 }
 // providers: [{ provide: QualtricsLoaderService, useClass: MyQualtricsLoaderService }]
@@ -1207,7 +1209,7 @@ Hook documentato a `feature-libs/qualtrics/components/qualtrics-loader/qualtrics
 - **T16 — `resolveFeature` senza error handler.** `load()` sottoscrive `resolveFeature('smartEdit')` senza gestione errori: se l'app non configura `featureModules.smartEdit.module`, l'errore "No module defined for Feature Module smartEdit" non è gestito (`feature-libs/smartedit/root/services/smart-edit-launcher.service.ts:L45-L45`, `core-libs/core/src/lazy-loading/feature-modules.service.ts:L47-L52`).
 - **T17 — Ticket "appiccicoso".** Il ticket salvato in `sessionStorage` non viene mai rimosso nel codice: per tutta la vita del tab, ogni reload è considerato "in SmartEdit" (fallback), con script injector caricato e `cmsTicketId` aggiunto alle chiamate (`feature-libs/smartedit/root/services/smart-edit-launcher.service.ts:L91-L96`, `feature-libs/smartedit/root/services/smart-edit-launcher.service.ts:L109-L118`). In sviluppo, aprire lo storefront nello stesso tab dopo averlo usato in SmartEdit dà comportamenti inattesi: chiudere il tab o cancellare la chiave.
 - **T18 — Parsing semplificato.** `isInitialSmartEditPage` confronta solo l'ultimo segmento del path con `storefrontPreviewRoute`, e il valore di `cmsTicketId` non è URL-decoded (`split('=')[1]`) (`feature-libs/smartedit/root/services/smart-edit-launcher.service.ts:L66-L66`, `feature-libs/smartedit/root/services/smart-edit-launcher.service.ts:L80-L83`).
-- **T19 — Path dell'injector hardcoded.** Lo `src` è sempre il path relativo hardcoded verso `webApplicationInjector.js` nella cartella `assets`: l'app deve copiare l'asset — lo fa lo schematic in `angular.json` (`feature-libs/smartedit/root/services/smart-edit-launcher.service.ts:L47-L48`, `core-libs/schematics/src/shared/lib-configs/smartedit-schematics-config.ts:L48-L51`).
+- **T19 — Path dell'injector hardcoded.** Lo `src` è sempre il path relativo hardcoded `assets/webApplicationInjector.js`: l'app deve copiare l'asset — lo fa lo schematic in `angular.json` (`feature-libs/smartedit/root/services/smart-edit-launcher.service.ts:L47-L48`, `core-libs/schematics/src/shared/lib-configs/smartedit-schematics-config.ts:L48-L51`).
 - **T20 — SSR.** In SSR `isLaunchedInSmartEdit` può essere vero solo per la pagina iniziale (il fallback da `sessionStorage` è saltato): in quel caso `load()` risolve comunque la feature e chiama `embedScript`, che senza callback non è bloccato in SSR e non controlla i duplicati lato server (`feature-libs/smartedit/root/services/smart-edit-launcher.service.ts:L43-L55`, `core-libs/core/src/util/script-loader.service.ts:L55-L63`).
 - **T21 — `id` come proprietà.** `id: 'text/smartedit-injector'` non inizia con `data-`, quindi `ScriptLoader` lo assegna come proprietà `script.id` (`feature-libs/smartedit/root/services/smart-edit-launcher.service.ts:L50-L53`, `core-libs/core/src/util/script-loader.service.ts:L73-L80`).
 - **T22 — Decisione per sottostringa.** `CmsTicketInterceptor` decide su `/cms/`, `/products/`, `/productList` nell'URL, non sugli endpoint configurati: endpoint OCC personalizzati con path diversi non ricevono il ticket (`feature-libs/smartedit/root/http-interceptors/cms-ticket.interceptor.ts:L33-L42`).
