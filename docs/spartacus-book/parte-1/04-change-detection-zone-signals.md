@@ -729,6 +729,7 @@ init(): void {
 16. **`AsyncPipe` e valori sincroni.** Se l'Observable emette in modo sincrono alla subscribe, la pipe non chiama `markForCheck` perché il valore è già nel primo render (`angular:packages/common/src/pipes/async_pipe.ts:L182-L189`).
 17. **`isStable` omonimi.** `ConfigInitializerService.isStable` (`core-libs/core/src/config/config-initializer/config-initializer.service.ts:L42-L42`) e l'`isStable` del carrello usato in checkout (`feature-libs/checkout/base/components/checkout-place-order/checkout-place-order.component.ts:L95-L95`) non hanno niente a che vedere con la stabilità di `ApplicationRef`.
 18. **`ChangeDetectionStrategy.Default` è deprecato** (`angular:packages/core/src/change_detection/constants.ts:L34-L40`), ma è solo un alias di `Eager`: i 5 componenti Spartacus che lo usano funzionano come prima.
+19. **Zone.js lato server.** ⚠️ DA VERIFICARE: non è confermato che il bundle server riceva `zone.js` attraverso il builder. `main.server.ts` non importa zone.js (`projects/storefrontapp/src/main.server.ts:L23-L26`) e il polyfill è dichiarato nel target browser (`projects/storefrontapp/project.json:L23-L23`), ma `node_modules` non è installato e la logica del builder non si può leggere. Se Zone mancasse sul server, la config SSR, che eredita `provideZoneChangeDetection` (`projects/storefrontapp/src/app/app.config.server.ts:L17-L30`), fallirebbe con `MISSING_ZONEJS` (`angular:packages/core/src/zone/ng_zone.ts:L151-L158`).
 
 ## 10. Come fare debug
 

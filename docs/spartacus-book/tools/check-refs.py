@@ -32,7 +32,7 @@ def sym_exists(s):
     if s in _symcache: return _symcache[s]
     name=s[:-2] if s.endswith('()') else s
     ok=False
-    for root,args in ((REPO,['core-libs','feature-libs','integration-libs','projects','tools','scripts','ci-scripts','package.json','nx.json','.env-cmdrc','tsconfig.json']),(NG,['packages'])):
+    for root,args in ((REPO,['core-libs','feature-libs','integration-libs','projects','tools','scripts','ci-scripts','package.json','nx.json','.env-cmdrc','tsconfig.json']),(NG,['packages']),('/tmp/deps',['.'])):
         try:
             r=subprocess.run(['grep','-rqw','--include=*.ts','--include=*.html','--include=*.scss','--include=*.json','--include=*.js','--include=*.mjs','--include=*.sh','--include=*.yml','--include=*.cjs',name]+args,cwd=root,capture_output=True)
             if r.returncode==0: ok=True; break
