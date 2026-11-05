@@ -130,6 +130,55 @@ Prerequisiti: [01 — Dependency Injection](../parte-1/01-dependency-injection.m
 | `integration-libs/epd-visualization/components/visual-viewer/visual-viewer.service.ts` | bootstrap UI5, viewport, caricamento scena |
 | `integration-libs/epd-visualization/components/visual-picking/visual-picking-tab/visual-picking-tab.service.ts` | collega lista prodotti e viewer |
 
+### File aggiuntivi
+
+| Path | Ruolo |
+|---|---|
+| `integration-libs/omf/public_api.ts` | Entry point principale: riesporta solo `root/public_api` (`:L7-L7`). |
+| `integration-libs/omf/schematics/add-omf/index.ts` | Factory `ng-add` `addOmfFeature` (`:L25-L43`). |
+| `integration-libs/omf/schematics/add-omf/index_spec.ts` | Test Jest dello schematic OMF (con feature order) (`:L24-L145`). |
+| `integration-libs/omf/vitest.config.ts` | Config Vitest con coverage sempre attiva e soglie 90/90/75/90 (`:L24-L46`). |
+| `integration-libs/s4om/public_api.ts` | Entry point principale (dichiarato in `ng-package.json`): riesporta `s4om.module` (`:L10-L10`). |
+| `integration-libs/s4om/index.ts` | Doppione di `public_api.ts` con lo stesso export (`:L7-L7`). |
+| `integration-libs/s4om/_index.scss` | Entry Sass: core + `styles/index` (`:L1-L3`). |
+| `integration-libs/s4om/styles/_index.scss` | Importa `schedule-lines` (`:L1-L1`). |
+| `integration-libs/s4om/styles/schedule-lines.scss` | Regole globali per `cx-schedule-lines` e `.cx-schedule-line-info` (`:L1-L27`). |
+| `integration-libs/s4om/schematics/add-s4om/index.ts` | Factory `ng-add` `addS4OMFeature` (`:L25-L43`). |
+| `integration-libs/s4om/schematics/add-s4om/index_spec.ts` | Test Jest dello schematic S4OM (`:L21-L114`). |
+| `integration-libs/s4om/schematics/constants.ts` | Costanti di nomi (cartella, modulo, traduzioni) non importate da nessun file (`:L9-L17`). |
+| `integration-libs/s4om/vitest.config.ts` | Config Vitest (soglie 90) (`:L42-L47`). |
+| `integration-libs/cpq-quote/schematics/add-cpq-quote/index.ts` | Factory `ng-add` `addCpqQuoteFeature` (`:L25-L43`). |
+| `integration-libs/cpq-quote/schematics/add-cpq-quote/index_spec.ts` | Test Jest dello schematic CPQ (con feature cart-base) (`:L25-L151`). |
+| `integration-libs/cpq-quote/vitest.config.ts` | Config Vitest: coverage solo `lcov`, senza `enabled` (`:L26-L42`). |
+| `integration-libs/s4-service/public_api.ts` | Entry point principale: riesporta `s4-service.module` (`:L7-L7`). |
+| `integration-libs/s4-service/styles/_index.scss` | Importa i cinque partial dei componenti (`:L1-L5`). |
+| `integration-libs/s4-service/styles/components/_checkout-service-details.scss` | Placeholder `%cx-service-details` (`:L1-L29`). |
+| `integration-libs/s4-service/styles/components/_cancel-service-order.scss` | Placeholder `%cx-cancel-service-order` (form motivo) (`:L1-L42`). |
+| `integration-libs/s4-service/styles/components/_cancel-service-order-headline.scss` | Placeholder `%cx-cancel-service-order-headline` (tabella) (`:L1-L38`). |
+| `integration-libs/s4-service/styles/components/_reschedule-service-order.scss` | Classi globali `.cx-reschedule-service-*`, `.cx-section-*` (`:L1-L34`). |
+| `integration-libs/s4-service/styles/components/_s4-service-order-detail-actions.scss` | Classe globale `.cx-order-details-actions` (`:L1-L7`). |
+| `integration-libs/s4-service/vitest.config.ts` | Config Vitest con alias verso helper di test del core (`:L16-L22`). |
+| `integration-libs/punchout/public_api.ts` | Entry point principale: riesporta `punchout.module` (`:L10-L10`). |
+| `integration-libs/punchout/_index.scss` | Entry Sass: allowlist componenti, `__body` e allowlist page template `PunchoutTemplate` (`:L7-L40`). |
+| `integration-libs/punchout/schematics/add-punchout/index.ts` | Factory `ng-add` `addPunchoutFeatures` (`:L25-L43`). |
+| `integration-libs/punchout/schematics/add-punchout/index_spec.ts` | Test Jest: solo il caso "senza feature" (`:L31-L45`). |
+| `integration-libs/punchout/test.ts` | Bootstrap Karma con `provideZoneChangeDetection()` (`:L14-L30`). |
+| `integration-libs/epd-visualization/public_api.ts` | Entry point principale: riesporta `epd-visualization.module` (`:L7-L7`). |
+| `integration-libs/epd-visualization/schematics/add-epd-visualization/index.ts` | Factory `ng-add` `addEpdVisualizationFeature`, deprecata (`:L25-L48`). |
+| `integration-libs/epd-visualization/schematics/add-epd-visualization/index_spec.ts` | Test Jest, anche con tsconfig senza `compilerOptions` (`:L132-L189`). |
+| `integration-libs/epd-visualization/test.ts` | Bootstrap Karma con `provideZoneChangeDetection()` (`:L16-L32`). |
+| `integration-libs/epd-visualization/styles/_index.scss` | Importa `components/index` (`:L1-L1`). |
+| `integration-libs/epd-visualization/styles/components/_index.scss` | Importa visual-picking e visual-viewer (`:L1-L2`). |
+| `integration-libs/epd-visualization/styles/components/visual-picking/_index.scss` | Importa i 4 partial del visual picking (`:L1-L4`). |
+| `integration-libs/epd-visualization/styles/components/visual-picking/paged-list.component.scss` | Placeholder `%cx-epd-visualization-paged-list` (carosello a slide) (`:L1-L110`). |
+| `integration-libs/epd-visualization/styles/components/visual-picking/visual-picking-product-filter.component.scss` | Placeholder `%cx-epd-visualization-product-filter` (`:L1-L49`). |
+| `integration-libs/epd-visualization/styles/components/visual-picking/visual-picking-product-list.component.scss` | Placeholder `%cx-epd-visualization-product-list` (thumbnail, highlight) (`:L1-L242`). |
+| `integration-libs/epd-visualization/styles/components/visual-picking/visual-picking-tab.component.scss` | Placeholder `%cx-epd-visualization-visual-picking-tab` (viewer + lista affiancati da `md`) (`:L1-L66`). |
+| `integration-libs/epd-visualization/styles/components/visual-viewer/_index.scss` | Importa i 3 partial del viewer (`:L1-L3`). |
+| `integration-libs/epd-visualization/styles/components/visual-viewer/visual-viewer-animation-slider.component.scss` | Placeholder `%cx-epd-visualization-animation-slider` (`:L1-L73`). |
+| `integration-libs/epd-visualization/styles/components/visual-viewer/visual-viewer-toolbar-button.component.scss` | Placeholder `%cx-epd-visualization-viewer-toolbar-button` (`:L1-L79`). |
+| `integration-libs/epd-visualization/styles/components/visual-viewer/visual-viewer.component.scss` | Placeholder `%cx-epd-visualization-viewer` (griglia, viewport UI5) (`:L1-L155`). |
+
 ## 3. Come funziona passo per passo
 
 ### 3.1 Il pattern comune: "root eager + estensione nel wrapper lazy"
@@ -317,6 +366,14 @@ Tutta la libreria è `@deprecated since v221121.5.0` (`integration-libs/epd-visu
 6. `loadVisualization` risolve la visualizzazione (0 / 1 / >1 match → `NoMatchFound`, `UniqueMatchFound`, `MultipleMatchesFound`), popola le mappe nodi-prodotti e carica la scena; in SSR ritorna subito un `UnexpectedError` (`integration-libs/epd-visualization/components/visual-viewer/visual-viewer.service.ts:L1032-L1092`, `integration-libs/epd-visualization/components/visual-viewer/visual-viewer.service.ts:L1402-L1449`). `loadScene` crea un `ContentResource` con `source: ${baseUrl}/vis/public/storage/v1` e `useSecureConnection: false` (`integration-libs/epd-visualization/components/visual-viewer/visual-viewer.service.ts:L1549-L1565`).
 
 `CompactAddToCartComponent` estende `AddToCartComponent` del secondary entry `@spartacus/cart/base/components/add-to-cart` cambiando solo il template (`integration-libs/epd-visualization/components/visual-picking/visual-picking-tab/product-list/compact-add-to-cart/compact-add-to-cart.component.ts:L10-L29`).
+
+### 3.12 Packaging: schematics, stili, test
+
+**Schematics `ng-add`.** Le sei factory hanno lo stesso corpo: `validateSpartacusInstallation`, `analyzeCrossFeatureDependencies`, poi la catena `analyzeApplication` → `addFeatures` → `addPackageJsonDependenciesForLibrary(peerDependencies)` → `finalizeInstallation` (`integration-libs/omf/schematics/add-omf/index.ts:L25-L43`, `integration-libs/s4om/schematics/add-s4om/index.ts:L25-L43`, `integration-libs/cpq-quote/schematics/add-cpq-quote/index.ts:L25-L43`, `integration-libs/punchout/schematics/add-punchout/index.ts:L25-L43`, `integration-libs/epd-visualization/schematics/add-epd-visualization/index.ts:L25-L48`). La conoscenza specifica (dipendenze, root module, `importAfter`) sta in `core-libs/schematics`, ad es. `S4OM_SCHEMATICS_CONFIG` (`core-libs/schematics/src/shared/lib-configs/integration-libs/s4om-schematics-config.ts:L28-L59`); per questo `integration-libs/s4om/schematics/constants.ts` è un doppione inerte, con nomi che divergono (`S4OM_MODULE_NAME` vs `S4OM_FEATURE_MODULE_NAME`) (`integration-libs/s4om/schematics/constants.ts:L9-L17`, `core-libs/schematics/src/shared/lib-configs/integration-libs/s4om-schematics-config.ts:L19-L26`). Lo spec punchout copre solo il caso senza feature (`integration-libs/punchout/schematics/add-punchout/index_spec.ts:L31-L45`).
+
+**Stili.** OMF e CPQ non hanno Sass. Punchout, s4-service ed EPD seguono lo schema placeholder + allowlist + `$skipComponentStyles`; punchout aggiunge un'allowlist di page template che estende `%PunchoutTemplate` su `cx-page-layout.PunchoutTemplate` (`integration-libs/punchout/_index.scss:L7-L40`, `integration-libs/epd-visualization/_index.scss:L5-L29`). In s4-service i partial di reschedule e detail actions definiscono classi globali anziché placeholder, quindi sono sempre applicati e non disattivabili via allowlist (`integration-libs/s4-service/styles/components/_reschedule-service-order.scss:L1-L34`, `integration-libs/s4-service/styles/components/_s4-service-order-detail-actions.scss:L1-L7`); lo stesso vale per `integration-libs/s4om/styles/schedule-lines.scss:L1-L27`.
+
+**Test.** OMF, S4OM, CPQ e s4-service usano Vitest; punchout ed EPD restano su Karma (`integration-libs/punchout/project.json:L20-L26`) con un `test.ts` custom che aggiunge `provideZoneChangeDetection()` per evitare gli NG0100 introdotti da Angular 21 (`integration-libs/punchout/test.ts:L14-L30`, `integration-libs/epd-visualization/test.ts:L16-L32`). Le soglie di coverage differiscono: 90/90/75/90 per OMF e S4OM, 85/85/65/85 per CPQ e s4-service; in CPQ la coverage non ha `enabled: true` e la costante `root` è dichiarata ma non usata (`integration-libs/omf/vitest.config.ts:L24-L46`, `integration-libs/s4om/vitest.config.ts:L42-L47`, `integration-libs/cpq-quote/vitest.config.ts:L11-L11`, `integration-libs/cpq-quote/vitest.config.ts:L26-L42`, `integration-libs/s4-service/vitest.config.ts:L43-L48`).
 
 ## 4. Diagrammi
 
@@ -1172,6 +1229,9 @@ export class MyCheckoutExtensionModule {}
 29. **EPD: config mancante non bloccante.** Senza `apis`/`ui5` il validator dà solo un warning in dev. Adapter e viewer fanno cast non nulli: se manca l'oggetto si ottiene un `TypeError` su `.baseUrl`/`.bootstrapUrl`; se manca solo la proprietà, un URL `undefined/vis/public/...` (`integration-libs/epd-visualization/epd-visualization-api/adapters/storage-v1/storage-v1.adapter.ts:L49-L56`, `integration-libs/epd-visualization/components/visual-viewer/visual-viewer.service.ts:L1108-L1108`, `integration-libs/epd-visualization/components/visual-viewer/visual-viewer.service.ts:L1138-L1138`).
 30. **EPD: documentazione invertita** in `SelectionDisplayMode` (Highlight descritto come outline e viceversa) (`integration-libs/epd-visualization/components/visual-viewer/models/selection-display-mode.ts:L12-L22`).
 31. **EPD: config letta nel costruttore.** `SceneNodeToProductLookupService` legge `usageIds` nel costruttore con cast: se la config non è completa al momento dell'istanza fallisce (`integration-libs/epd-visualization/core/services/scene-node-to-product-lookup/scene-node-to-product-lookup.service.ts:L35-L43`).
+32. **Collection punchout con factory sbagliata.** Lo schematic `add` punta a `./add-punchout/index#addCustomerTicketingFeatures`, funzione che `add-punchout/index.ts` non esporta (copia da customer-ticketing): solo `ng-add` funziona (`integration-libs/punchout/schematics/collection.json:L12-L16`, `integration-libs/punchout/schematics/add-punchout/index.ts:L25-L25`).
+33. **Collection s4om con factory mancante.** `add-spartacus-library` punta a `./add-library/index#addSpartacusLibrary`, ma `integration-libs/s4om/schematics/` contiene solo `add-s4om`, `collection.json` e `constants.ts` (`integration-libs/s4om/schematics/collection.json:L12-L17`).
+34. **Due entry file in s4om.** `index.ts` e `public_api.ts` esportano lo stesso modulo, ma ng-packagr usa solo `public_api.ts` (`integration-libs/s4om/index.ts:L7-L7`, `integration-libs/s4om/public_api.ts:L10-L10`, `integration-libs/s4om/ng-package.json:L4-L6`).
 
 ## 10. Come fare debug
 
