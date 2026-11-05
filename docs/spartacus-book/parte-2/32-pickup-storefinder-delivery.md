@@ -54,7 +54,7 @@ In sintesi:
 | `feature-libs/storefinder/core/config/default-store-finder-config.ts` | Default `googleMaps` (`:L9-L21`). |
 | `feature-libs/storefinder/core/facade/store-finder.service.ts` | Service concreto, geolocalizzazione, reload su cambio contesto (`:L26-L259`). |
 | `feature-libs/storefinder/core/service/google-map-renderer.service.ts` | Caricamento script Google Maps e marker (`:L44-L275`). |
-| `feature-libs/storefinder/core/service/store-location.service.ts` | Lat/lng e link direzioni (`:L35-L40`). |
+| `feature-libs/storefinder/core/service/store-location.service.ts` | Lat/lng e link direzioni (`:L10-L41`). |
 | `feature-libs/storefinder/core/store/**` | Azioni, effetti, reducer, selettori, stato `stores`. |
 | `feature-libs/storefinder/occ/adapters/occ-store-finder.adapter.ts` | Adapter OCC (`:L36-L103`). |
 | `feature-libs/storefinder/components/store-finder-components.module.ts` | Mapping CMS con `childRoutes` (`:L38-L99`). |
@@ -102,7 +102,7 @@ Il template mostra il picker solo se esiste `earliestRetrievalAt`; in modalità 
 
 ### 3.2 Estimated Delivery Date
 
-**Wiring.** `EstimatedDeliveryDateRootModule` è un `@NgModule({})` vuoto (`feature-libs/estimated-delivery-date/root/estimated-delivery-date-root.module.ts:L9-L10`). La costante `estimatedDeliveryDate` esiste (`feature-libs/estimated-delivery-date/root/feature-name.ts:L7-L7`) ma la demo non la usa come feature lazy: `EstimatedDeliveryDateModule` viene aggiunto alle `extensions` di `CartBaseWrapperModule`, cioè **viaggia nello stesso chunk del carrello** (`projects/storefrontapp/src/app/spartacus/features/cart/cart-base-wrapper.module.ts:L14-L25`). Il feature module EDD della demo importa solo il root module vuoto e la config i18n (`projects/storefrontapp/src/app/spartacus/features/estimated-delivery-date/estimated-delivery-date-feature.module.ts:L18-L35`).
+**Wiring.** `EstimatedDeliveryDateRootModule` è un `@NgModule({})` vuoto (`feature-libs/estimated-delivery-date/root/estimated-delivery-date-root.module.ts:L9-L10`). La costante `estimatedDeliveryDate` esiste (`feature-libs/estimated-delivery-date/root/feature-name.ts:L7-L7`) ma la demo non la usa come feature lazy. Se la variabile `CX_ESTIMATED_DELIVERY_DATE` è attiva (`environment.estimatedDeliveryDate`, default `false`: `projects/storefrontapp/src/environments/environment.ts:L39-L39`), la demo aggiunge `EstimatedDeliveryDateModule` alle `extensions` di `CartBaseWrapperModule`, quindi l'EDD **viaggia nello stesso chunk del carrello** (`projects/storefrontapp/src/app/spartacus/features/cart/cart-base-wrapper.module.ts:L16-L18`); altrimenti non viene caricato. La stessa condizione governa `EstimatedDeliveryDateFeatureModule` (`projects/storefrontapp/src/app/spartacus/spartacus-features.module.ts:L167-L169`). Il feature module EDD della demo importa solo il root module vuoto e la config i18n (`projects/storefrontapp/src/app/spartacus/features/estimated-delivery-date/estimated-delivery-date-feature.module.ts:L18-L35`).
 
 `EstimatedDeliveryDateModule` importa solo `ShowEstimatedDeliveryDateModule` (`feature-libs/estimated-delivery-date/estimated-delivery-date.module.ts:L10-L13`), che fa due cose (`feature-libs/estimated-delivery-date/show-estimated-delivery-date/show-estimated-delivery-date.module.ts:L28-L35`):
 
@@ -195,7 +195,7 @@ Punti salienti:
 
 - `intendedPickupLocationsReducer`: `AddLocation` sostituisce, `RemoveLocation` scrive `{pickupOption: 'delivery'}` invece di cancellare, `SetPickupOption` fonde il pickupOption (`feature-libs/pickup-in-store/core/store/reducers/pickup-locations/pickup-locations.reducer.ts:L14-L31`).
 - `pickupOptionReducer`: `RemovePickupOption` rimuove e decrementa gli `entryNumber` successivi, rispecchiando la rinumerazione delle entry del carrello (`feature-libs/pickup-in-store/core/store/reducers/pickup-option/pickup-option.reducer.ts:L13-L42`).
-- Il meta reducer `clearStockState` porta tutto lo stato `stock` a `undefined` su `CLEAR_STOCK_DATA` (`feature-libs/pickup-in-store/core/store/reducers/stock/index.ts:L42-L54`).
+- Il meta reducer `clearStockState`, su `CLEAR_STOCK_DATA`, passa `undefined` al reducer, che quindi riporta tutta la feature `stock` allo stato iniziale (`feature-libs/pickup-in-store/core/store/reducers/stock/index.ts:L42-L54`).
 - `stockAtStoreReducer` scrive `[productCode]: { [storeName]: stockLevel }`, sostituendo l'intero oggetto del prodotto (`feature-libs/pickup-in-store/core/store/reducers/stock/stock-level.reducer.ts:L45-L51`).
 - `getPickupOptionByProductCode` restituisce `'delivery'` come default (`feature-libs/pickup-in-store/core/store/selectors/pickup-locations.selectors.ts:L48-L55`); `getStoresWithStockForProductCode` filtra con `storeHasStock` solo se `hideOutOfStock` è true (`feature-libs/pickup-in-store/core/store/selectors/stock.selectors.ts:L61-L71`); `isInStock` considera non disponibili sia `outOfStock` sia `lowStock` (`feature-libs/pickup-in-store/core/utils/utils.ts:L9-L19`).
 
@@ -203,7 +203,7 @@ Effetti:
 
 - `StockEffect.loadStockLevels$` (`switchMap`): separa `productCode` dal resto dei parametri, chiama `GET products/${productCode}/stock` con `location` o `latitude/longitude` + `fields: 'FULL'`, errore → `StockLevelFail` (`feature-libs/pickup-in-store/core/store/effects/stock.effect.ts:L26-L49`, `feature-libs/pickup-in-store/occ/adapters/occ-stock.adapter.ts:L35-L51`).
 - `loadStockLevelAtStore$` (`concatMap`) **senza** `catchError` (`feature-libs/pickup-in-store/core/store/effects/stock.effect.ts:L51-L65`).
-- `PickupLocationEffect.storeDetails$` (`mergeMap`) → `SetStoreDetailsSuccess`/`SetStoreDetailsFailure` (`feature-libs/pickup-in-store/core/store/effects/pickup-location.effect.ts:L26-L51`); `SetStoreDetailsFailure` è un wrapper che aggiunge `error` al payload per farsi riconoscere da `CxErrorHandlerEffect` (`feature-libs/pickup-in-store/core/store/actions/pickup-location.action.ts:L83-L102`).
+- `PickupLocationEffect.storeDetails$` (`mergeMap`) → `SetStoreDetailsSuccess`/`SetStoreDetailsFailure` (`feature-libs/pickup-in-store/core/store/effects/pickup-location.effect.ts:L26-L51`); `SetStoreDetailsFailure` è un wrapper che aggiunge all'azione la proprietà `error` (uguale a `payload`) per farsi riconoscere da `CxErrorHandlerEffect` (`feature-libs/pickup-in-store/core/store/actions/pickup-location.action.ts:L83-L102`).
 - `loadDefaultPointOfService$`: se il profilo utente ha `defaultPointOfServiceName` usa quello (con `displayName: ''`), altrimenti legge `preferred_store` dal localStorage; in errore emette uno store vuoto (`feature-libs/pickup-in-store/core/store/effects/default-point-of-service-name.effect.ts:L39-L81`).
 - `setDefaultPointOfService$`: salva in localStorage, aggiorna il profilo (`defaultPointOfServiceName`), e termina sempre con `LoadDefaultPointOfService()` (`feature-libs/pickup-in-store/core/store/effects/default-point-of-service-name.effect.ts:L83-L107`).
 
@@ -781,7 +781,7 @@ Esempio (solo illustrativo, simboli esportati da `@spartacus/storefinder/root` e
 | `StoreFinderFacade` | facade astratto | `feature-libs/storefinder/root/facade/store-finder.facade.ts:L43-L73` | `@spartacus/storefinder/root` | [50](../parte-3/50-ricette-config-di.md) |
 | `StoreFinderAdapter`, `STORE_FINDER_SEARCH_PAGE_NORMALIZER`, `STORE_COUNT_NORMALIZER` | adapter / token | `feature-libs/storefinder/core/connectors/store-finder.adapter.ts:L11-L22`, `feature-libs/storefinder/core/connectors/converters.ts:L11-L17` | `@spartacus/storefinder/core` | [52 — adapter e converter](../parte-3/52-ricette-occ-dati.md) |
 | `StoreFinderConfig` (`googleMaps`) | config astratta | `feature-libs/storefinder/core/config/store-finder-config.ts:L10-L27` | `@spartacus/storefinder/core` | [50 — override config](../parte-3/50-ricette-config-di.md) |
-| `GoogleMapRendererService`, `StoreLocationService` | service root | `feature-libs/storefinder/core/service/google-map-renderer.service.ts:L44-L68`, `feature-libs/storefinder/core/service/store-location.service.ts:L35-L40` | `@spartacus/storefinder/core` | [50 — override service](../parte-3/50-ricette-config-di.md) |
+| `GoogleMapRendererService`, `StoreLocationService` | service root | `feature-libs/storefinder/core/service/google-map-renderer.service.ts:L44-L68`, `feature-libs/storefinder/core/service/store-location.service.ts:L10-L41` | `@spartacus/storefinder/core` | [50 — override service](../parte-3/50-ricette-config-di.md) |
 | `StoreFinderActions`, `StoreFinderSelectors` | NgRx | `feature-libs/storefinder/core/store/actions/index.ts:L7-L8`, `feature-libs/storefinder/core/store/selectors/index.ts:L7-L8` | `@spartacus/storefinder/core` (effetti/reducer non esportati) | [54](../parte-3/54-upgrade-safe.md) |
 | `StoreFinderOutlets.PREFERRED_STORE` | outlet | `feature-libs/storefinder/root/model/store-entities.model.ts:L9-L11` | `@spartacus/storefinder/root` | [51 — outlet](../parte-3/51-ricette-cms-outlet-layout.md) |
 | `StoreFinderComponent` + `childRoutes` | componente CMS | `feature-libs/storefinder/components/store-finder-components.module.ts:L66-L99` | `@spartacus/storefinder/components` | [51 — sostituire componente CMS, route custom](../parte-3/51-ricette-cms-outlet-layout.md) |
@@ -817,7 +817,7 @@ Note pratiche:
 - **T7 — `consignments$` al singolare.** È tipato `Observable<Consignment>` e il template lo usa come singola consignment; con più consignment emette in sequenza e il template mostra l'ultima (`feature-libs/estimated-delivery-date/show-estimated-delivery-date/components/estimated-delivery-date.component.ts:L34-L37`, `feature-libs/estimated-delivery-date/show-estimated-delivery-date/components/estimated-delivery-date.component.html:L42-L52`).
 - **T8 — endpoint sostituiti interamente.** L'override EDD rimpiazza le stringhe `carts`/`cart`/`createCart` della cart lib; una personalizzazione applicativa le rimpiazza a sua volta (sezione 3.2; `core-libs/core/src/config/services/configuration.service.ts:L76-L100`).
 - **T9 — data non localizzata.** Formato `M/d/yyyy` cablato nel template (`feature-libs/estimated-delivery-date/show-estimated-delivery-date/components/estimated-delivery-date.component.html:L21-L21`).
-- **T10 — non è lazy nella demo.** EDD arriva col chunk del carrello, il root module è vuoto (`projects/storefrontapp/src/app/spartacus/features/cart/cart-base-wrapper.module.ts:L14-L25`).
+- **T10 — non è lazy nella demo.** Con `CX_ESTIMATED_DELIVERY_DATE` attiva, EDD arriva col chunk del carrello; con la build di default (`false`) non è presente affatto. Il root module è vuoto (`projects/storefrontapp/src/app/spartacus/features/cart/cart-base-wrapper.module.ts:L16-L18`, `projects/storefrontapp/src/environments/environment.ts:L39-L39`).
 
 **Store finder**
 
