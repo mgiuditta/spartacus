@@ -1,0 +1,8 @@
+feature-libs/product-multi-dimensional/_index.scss
+feature-libs/product-multi-dimensional/public_api.ts
+feature-libs/product-multi-dimensional/schematics/add-product-multi-dimensional/index.ts
+feature-libs/product-multi-dimensional/schematics/add-product-multi-dimensional/index_spec.ts
+feature-libs/product/_index.scss
+feature-libs/product/schematics/add-product/index.ts
+feature-libs/product/schematics/add-product/index_spec.ts
+feature-libs/product/vitest.config.ts

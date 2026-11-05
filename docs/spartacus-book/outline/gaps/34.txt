@@ -1,0 +1,10 @@
+integration-libs/cdc/schematics/add-cdc/index.ts
+integration-libs/cdc/schematics/add-cdc/index_spec.ts
+integration-libs/cdc/vitest.config.ts
+integration-libs/cdp/schematics/add-cdp/index.ts
+integration-libs/cdp/schematics/add-cdp/index_spec.ts
+integration-libs/cdp/vitest.config.ts
+integration-libs/cds/vitest.config.ts
+integration-libs/segment-refs/schematics/add-segment-refs/index.ts
+integration-libs/segment-refs/schematics/add-segment-refs/index_spec.ts
+integration-libs/segment-refs/vitest.config.ts
