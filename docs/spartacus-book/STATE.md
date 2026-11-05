@@ -32,3 +32,4 @@
 - 00:39 Verificatori lanciati in più: 01 05 07 23 24 25 26 27 28 29. Counter({'scritto': 33, 'corretto': 11, 'dossier': 6, 'review': 1})
 - 00:45 Counter({'scritto': 32, 'corretto': 16, 'review': 2, 'dossier': 1}). Prossimi verificatori: 40 41 42 43 44 45 46 47 02 03 04 06 08 50-54
 - 00:50 Counter({'corretto': 29, 'scritto': 16, 'review': 5, 'dossier': 1}). Prossimi verificatori: 06 08 50 51 52 53 54 (45 46 47 02 03 04 42 43 44 in corso)
+- 00:54 FASE 3 COMPLETATA: 51/51 capitoli scritti. Fase 4 in corso (36 corretti). Copertura: agenti gap su 23-36 in corso.
