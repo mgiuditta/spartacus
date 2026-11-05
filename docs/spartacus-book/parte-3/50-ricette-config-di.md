@@ -191,7 +191,7 @@ Catena di export:
 
 - `deepMerge` **muta il target** e il `Config` globale viene ulteriormente modificato in place quando arrivano moduli lazy: non mutare oggetti statici condivisi, clonali — `core-libs/core/src/config/services/configuration.service.ts:L102-L105`, `core-libs/storefront/recipes/config/layout-config.ts:L190-L191`.
 - La costante `layoutConfig` è `@deprecated` a favore di `layoutConfigFactory` — `core-libs/storefront/recipes/config/layout-config.ts:L13-L27`.
-- In una **libreria** usare `provideDefaultConfigFactory` (o il terzo argomento `true`), non `provideConfigFactory`: il JSDoc lo raccomanda e una regola ESLint del monorepo lo controlla — `core-libs/core/src/config/config-providers.ts:L29-L36`, `tools/eslint-rules/rules/use-provide-default-config-factory.ts:L22-L46`.
+- In una **libreria** usare `provideDefaultConfigFactory`: il JSDoc lo raccomanda e la regola ESLint `use-provide-default-config-factory` del monorepo segnala qualsiasi chiamata a `provideConfigFactory`, anche con `defaultConfig = true` (il selettore guarda solo il nome della funzione) — `core-libs/core/src/config/config-providers.ts:L29-L36`, `tools/eslint-rules/rules/use-provide-default-config-factory.ts:L41-L47`.
 - La factory gira dentro un contesto di injection durante la creazione di `Config`: iniettare (anche indirettamente) `Config` dalla factory crea una dipendenza circolare. ⚠️ DA VERIFICARE con test: deduzione da `core-libs/core/src/config/config-tokens.ts:L10-L47` (nessun caso nel repo).
 
 ### 3.3 Ricetta 3 — Config tipizzata per il proprio codice (augmentation + default + validator)
@@ -385,9 +385,9 @@ Catena di export:
 
 #### Limiti e trappole
 
-- **Conflitto con ASM**: se è installato `AsmRootModule`, anche lui ridefinisce `AuthHttpHeaderService`; vince il provider elaborato per ultimo e l'altro viene ignorato — `feature-libs/asm/root/asm-root.module.ts:L73-L76`, `angular:packages/core/src/di/r3_injector.ts:L513-L521`. In quel caso la sottoclasse dovrebbe estendere la classe ASM (se pubblica nel `public_api` di `@spartacus/asm/root`; ⚠️ DA VERIFICARE: export non controllato in questo capitolo).
+- **Conflitto con ASM e Punchout**: anche `AsmRootModule` e `PunchoutRootModule` ridefiniscono `AuthHttpHeaderService` in root (Punchout con una `useFactory` che, secondo il toggle `enableExpiredRefreshTokenHandlers`, restituisce `PunchoutAuthHttpHeaderService` oppure il servizio fornito sotto `DELEGATED_AUTH_HTTP_HEADER_SERVICE`, con fallback su `DEFAULT_AUTH_HTTP_HEADER_SERVICE`); vince il provider elaborato per ultimo e gli altri vengono ignorati — `feature-libs/asm/root/asm-root.module.ts:L73-L76`, `integration-libs/punchout/root/punchout.root.module.ts:L49-L66`, `integration-libs/punchout/root/public_api.ts:L11-L11`, `angular:packages/core/src/di/r3_injector.ts:L513-L521`. I token `DEFAULT_AUTH_HTTP_HEADER_SERVICE`/`DELEGATED_AUTH_HTTP_HEADER_SERVICE` esistono proprio per coordinare questi override e sono marcati come temporanei — `core-libs/core/src/auth/user-auth/services/auth-http-header.service.ts:L52-L82`. Se serve il comportamento ASM, la sottoclasse può estendere `AsmAuthHttpHeaderService`, che è pubblica — `feature-libs/asm/root/public_api.ts:L14-L14` → `feature-libs/asm/root/services/index.ts:L7-L7`.
 - L'override in un modulo **lazy** è visibile solo ai consumer risolti da quell'injector; `AuthInterceptor` (root) continuerebbe a usare l'istanza root. ⚠️ DA VERIFICARE a runtime: deduzione dalla gerarchia degli injector — `core-libs/core/src/lazy-loading/lazy-modules.service.ts:L85-L107`, `angular:packages/core/src/di/r3_injector.ts:L347-L366`.
-- Se si dichiara un costruttore, bisogna rilanciare a `super(...)` tutte e sette le dipendenze nell'ordine esatto, come fa ASM — `core-libs/core/src/auth/user-auth/services/auth-http-header.service.ts:L157-L165`, `feature-libs/asm/root/services/asm-auth-http-header.service.ts:L33-L52`; con `inject()` si evita l'accoppiamento alla firma.
+- Se si dichiara un costruttore, bisogna rilanciare a `super(...)` tutte e sette le dipendenze nell'ordine esatto, come fa ASM, anche se la sottoclasse le ottiene con `inject()` — `core-libs/core/src/auth/user-auth/services/auth-http-header.service.ts:L157-L165`, `feature-libs/asm/root/services/asm-auth-http-header.service.ts:L33-L52`. Per aggiungere dipendenze senza accoppiarsi alla firma, non dichiarare un costruttore e usare field `inject()` nella sottoclasse (`protected x = inject(X)`), lasciando ad Angular la factory ereditata — `angular:packages/core/src/render3/di.ts:L918-L945`.
 - Estendere `isOccUrl` invia il token OAuth a un altro host: farlo solo per backend fidati.
 - `useClass` invece di `useExisting` creerebbe un'istanza distinta da quella registrata sul token della sottoclasse — `angular:packages/core/src/di/r3_injector.ts:L657-L677`.
 
@@ -540,7 +540,7 @@ Catena di export:
 
 - Interceptor forniti in un modulo **lazy** non vengono applicati: la catena viene dall'injector root ed è in cache dalla prima richiesta. Tutti gli interceptor del repo sono in moduli root/eager — `angular:packages/common/http/src/backend.ts:L101-L122`, `angular:packages/common/http/src/interceptor.ts:L227-L240`.
 - Senza `withInterceptorsFromDi()` non funzionano né gli interceptor Spartacus né quelli class-based custom; Angular avverte che il supporto DI "may be phased out" — `angular:packages/common/http/src/provider.ts:L170-L174`.
-- Ordine: un interceptor nei `providers` dell'`AppModule` è elaborato dopo quelli dei moduli importati, quindi più interno (vede la richiesta già modificata, es. con l'header di autenticazione). ⚠️ DA VERIFICARE con test: deduzione da `angular:packages/core/src/di/r3_injector.ts:L497-L512` e `angular:packages/common/http/src/interceptor.ts:L233-L240`.
+- Ordine: un interceptor nei `providers` dell'`AppModule` è elaborato dopo quelli dei moduli importati, quindi più interno (vede la richiesta già modificata, es. con l'header di autenticazione) — `angular:packages/core/src/di/r3_injector.ts:L497-L512`, `angular:packages/common/http/src/interceptor.ts:L237-L240`. Nella demo l'ordine di registrazione è [`HttpErrorInterceptor`, …, `AuthInterceptor`, …, custom]: `HttpErrorInterceptor` arriva da `GlobalMessageModule.forRoot()` in `BaseCoreModule` (via `BaseStorefrontModule`), importato prima di `SpartacusFeaturesModule` che contiene `AuthModule.forRoot()` — `core-libs/core/src/global-message/global-message.module.ts:L27-L30`, `core-libs/core/src/base-core.module.ts:L35-L35`, `projects/storefrontapp/src/app/spartacus/spartacus.module.ts:L13-L16`, `projects/storefrontapp/src/app/spartacus/spartacus-features.module.ts:L179-L179`. Quindi `HttpErrorInterceptor` è il più esterno dei tre.
 - `getBaseUrl()` per default include `baseUrl + prefix + baseSite`: richieste OCC senza base site (es. `baseSites`) non passano il filtro — `core-libs/core/src/occ/services/occ-endpoints.service.ts:L85-L101`.
 - Gli interceptor girano anche in SSR: proteggere il codice browser-only con `winRef.isBrowser()` — `integration-libs/segment-refs/root/http-interceptors/occ-segment-refs.interceptor.ts:L53-L59`, `integration-libs/segment-refs/root/http-interceptors/occ-segment-refs.interceptor.ts:L73-L77`.
 - Non tutto è estendibile: `@spartacus/segment-refs/root` esporta solo `SegmentRefsRootModule`, quindi `OccSegmentRefsInterceptor` non è importabile dall'app — `integration-libs/segment-refs/root/public_api.ts:L7-L7`.
@@ -573,8 +573,9 @@ export class CustomConflictHandler extends HttpErrorHandler {
   responseStatus = HttpResponseStatus.CONFLICT;
 
   getPriority(): Priority {
-    // i handler core usano LOW: NORMAL basta per vincere
-    return Priority.NORMAL;
+    // ConflictHandler di core usa LOW, ma alcune feature lazy (organization)
+    // registrano handler 409 NORMAL: HIGH prevale in modo affidabile
+    return Priority.HIGH;
   }
 
   hasMatch(errorResponse: HttpErrorResponse): boolean {
@@ -614,6 +615,7 @@ Catena di export (tutti da `core-libs/core/public_api.ts:L21-L21` → `core-libs
 
 - `HttpErrorInterceptor` raccoglie gli handler con `UnifiedInjector.getMulti(HttpErrorHandler)` (root + moduli lazy) — `core-libs/core/src/global-message/http-interceptors/http-error.interceptor.ts:L22-L28`, `core-libs/core/src/lazy-loading/unified-injector.ts:L75-L93` — e sceglie con `resolveApplicable(handlers, [response])` — `core-libs/core/src/global-message/http-interceptors/http-error.interceptor.ts:L59-L65`.
 - `resolveApplicable` filtra per `hasMatch` e sceglie la priorità più alta; a parità vince il provider registrato per ultimo — `core-libs/core/src/util/applicable.ts:L47-L87`. Gli handler core hanno priorità `LOW` (`UnknownErrorHandler`: `FALLBACK`) — `core-libs/core/src/global-message/http-interceptors/handlers/conflict/conflict.handler.ts:L26-L28`, `core-libs/core/src/global-message/http-interceptors/handlers/unknown-error/unknown-error.handler.ts:L48-L50`.
+- Per prevalere in modo affidabile serve `Priority.HIGH`: `OrganizationUserRegistrationConflictHandler` (che non ridefinisce `hasMatch`, quindi accetta ogni 409) e `OrganizationConflictHandler` usano `Priority.NORMAL` e sono registrati nei moduli core di organization, caricati lazy; a parità di priorità vince l'ultimo registrato e `UnifiedInjector.getMulti` accoda gli handler lazy dopo quelli root — `feature-libs/organization/user-registration/core/http-interceptors/conflict/conflict.handler.ts:L20-L39`, `feature-libs/organization/user-registration/core/user-registration-core.module.ts:L23-L23`, `feature-libs/organization/administration/core/http-interceptors/conflict/conflict.handler.ts:L95-L95`, `core-libs/core/src/lazy-loading/unified-injector.ts:L82-L92`, `core-libs/core/src/util/applicable.ts:L57-L57`.
 - `HttpErrorHandler` fornisce `hasMatch` per status, `isSsr()` e `globalMessageService` — `core-libs/core/src/global-message/http-interceptors/handlers/http-error.handler.ts:L12-L72`.
 - Modello reale importato solo da `@spartacus/core`: `BadCartRequestHandler`, registrato nel modulo lazy `CartBaseCoreModule` — `feature-libs/cart/base/core/http-interceptors/handlers/bad-cart-request.handler.ts:L9-L38`, `feature-libs/cart/base/core/cart-base-core.module.ts:L37-L41`.
 
@@ -643,7 +645,7 @@ import { Subscription, merge } from 'rxjs';
 
 export class PromoBannerClickedEvent extends CxEvent {
   static readonly type = 'PromoBannerClickedEvent';
-  bannerId: string;
+  bannerId!: string;
 }
 
 /** Produttore: da un componente o servizio. */
@@ -698,7 +700,7 @@ Catena di export:
 - Il bus non fa replay: un evento senza consumer attivi va perso — `core-libs/core/src/event/event.service.ts:L120-L128`, `core-libs/core/src/event/utils/merging-subject.ts:L45-L80`. Il listener deve essere istanziato prima che l'evento sia emesso (da qui il modulo che lo inietta nel costruttore).
 - `createFrom` chiama `new Tipo()` senza argomenti: niente costruttori con parametri negli eventi — `core-libs/core/src/util/create-from.ts:L15-L17`.
 - Un evento che non estende `CxEvent` produce solo un warning in dev mode — `core-libs/core/src/event/event.service.ts:L166-L197`.
-- `static readonly type` deve essere univoco e leggibile: è il nome usato nei messaggi di validazione — `core-libs/core/src/event/event.service.ts:L181-L197`.
+- `static readonly type` è una convenzione delle classi evento. `EventService` lo usa solo per riconoscere `CxEvent` lungo la catena dei prototipi (confronto con `CxEvent.type`): un evento custom non deve quindi dichiarare `type = 'CxEvent'`. I messaggi di validazione usano il nome della classe (`eventType.name`) e i tipi sono distinti per riferimento di classe, non per stringa — `core-libs/core/src/event/event.service.ts:L183-L196`, `core-libs/core/src/event/event.service.ts:L133-L141`.
 
 ### 3.10 Ricetta 10 — Evento derivato da un altro evento (`EventService.register`)
 
@@ -720,7 +722,7 @@ import { filter, map } from 'rxjs/operators';
 
 export class OrderHistoryPageEvent extends CxEvent {
   static readonly type = 'OrderHistoryPageEvent';
-  url: string;
+  url!: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -792,7 +794,7 @@ import {
 
 export class GlobalMessageShownEvent extends CxEvent {
   static readonly type = 'GlobalMessageShownEvent';
-  message: GlobalMessage;
+  message!: GlobalMessage;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -820,7 +822,7 @@ export class GlobalMessageEventModule {
 Catena di export:
 
 - `StateEventService`: `core-libs/core/public_api.ts:L33-L33` → `core-libs/core/src/state/index.ts:L8-L8` → `core-libs/core/src/state/event/index.ts:L7-L8` → definizione `core-libs/core/src/state/event/state-event.service.ts:L19-L22`.
-- `GlobalMessageActions`: `core-libs/core/public_api.ts:L21-L21` → `core-libs/core/src/global-message/index.ts:L14-L14` → `core-libs/core/src/global-message/store/actions/index.ts:L7-L8` → definizioni `core-libs/core/src/global-message/store/actions/global-message.actions.ts:L13-L21`.
+- `GlobalMessageActions`: `core-libs/core/public_api.ts:L21-L21` → `core-libs/core/src/global-message/index.ts:L14-L14` → `core-libs/core/src/global-message/store/actions/index.ts:L7-L8` → `core-libs/core/src/global-message/store/actions/global-message-group.actions.ts:L7-L7` → definizioni `core-libs/core/src/global-message/store/actions/global-message.actions.ts:L13-L21`.
 - `GlobalMessage`: `core-libs/core/src/global-message/index.ts:L12-L12` → definizione `core-libs/core/src/global-message/models/global-message.model.ts:L17-L21`.
 - `CxEvent`, `createFrom`: come Ricette 9 e 10.
 
@@ -893,24 +895,26 @@ Riferimenti: `feature-libs/order/root/facade/order-history.facade.ts:L19-L49`, `
 sequenceDiagram
   participant A as Adapter OCC
   participant H as HttpInterceptorHandler (root)
-  participant I1 as Interceptor Spartacus (es. AuthInterceptor)
-  participant I2 as ShopHeadersInterceptor (custom)
   participant E as HttpErrorInterceptor
+  participant I1 as AuthInterceptor
+  participant I2 as ShopHeadersInterceptor (custom)
   participant B as Backend
   A->>H: http.get(url)
   H->>H: alla prima richiesta costruisce e mette in cache la catena HTTP_INTERCEPTORS
-  H->>I1: intercept(req)
+  H->>E: intercept(req)
+  E->>I1: next.handle(req)
   I1->>I1: AuthHttpHeaderService.alterRequest (isOccUrl)
   I1->>I2: next.handle(req)
   I2->>I2: clone + setHeaders se OCC e browser
-  I2->>E: next.handle(req)
-  E->>B: richiesta
-  B-->>E: 409
-  E->>E: resolveApplicable(handlers root+lazy, [response])
-  E-->>A: errore propagato (tap)
+  I2->>B: richiesta
+  B-->>I2: 409
+  I2-->>I1: errore
+  I1-->>E: errore
+  E->>E: tap({ error }): resolveApplicable(handlers root+lazy, [response])
+  E-->>A: errore propagato
 ```
 
-L'ordine relativo degli interceptor dipende dall'ordine di registrazione dei multi provider (⚠️ DA VERIFICARE per il caso specifico, vedi Ricetta 7). Riferimenti: `angular:packages/common/http/src/backend.ts:L101-L122`, `angular:packages/common/http/src/interceptor.ts:L227-L240`, `core-libs/core/src/auth/user-auth/services/auth-http-header.service.ts:L188-L207`, `core-libs/core/src/global-message/http-interceptors/http-error.interceptor.ts:L30-L65`.
+L'ordine relativo degli interceptor dipende dall'ordine di registrazione dei multi provider: il primo registrato è il più esterno (`reduceRight`). Nella demo `HttpErrorInterceptor` (da `GlobalMessageModule.forRoot()` in `BaseCoreModule`) precede `AuthInterceptor` (da `AuthModule.forRoot()` in `SpartacusFeaturesModule`), e un interceptor nei `providers` dell'`AppModule` è elaborato per ultimo — `core-libs/core/src/global-message/global-message.module.ts:L27-L30`, `core-libs/core/src/base-core.module.ts:L35-L35`, `projects/storefrontapp/src/app/spartacus/spartacus.module.ts:L13-L16`, `projects/storefrontapp/src/app/spartacus/spartacus-features.module.ts:L179-L179`, `angular:packages/common/http/src/interceptor.ts:L237-L240`. Altri riferimenti: `angular:packages/common/http/src/backend.ts:L101-L122`, `angular:packages/common/http/src/interceptor.ts:L227-L240`, `core-libs/core/src/auth/user-auth/services/auth-http-header.service.ts:L188-L207`, `core-libs/core/src/global-message/http-interceptors/http-error.interceptor.ts:L30-L65`.
 
 ### 4.4 Eventi custom: dispatch, sorgenti derivate, action (Ricette 9-11)
 
@@ -1375,7 +1379,7 @@ Riepilogo delle ricette, con il capitolo della Parte II che descrive il meccanis
 6. **Il proxy di facade espone solo i `methods`/`properties` del descrittore** — `core-libs/core/src/lazy-loading/facade-factory/facade-factory.service.ts:L110-L131`.
 7. **Interceptor in moduli lazy ignorati**; `HttpErrorHandler` in moduli lazy invece funziona — `angular:packages/common/http/src/backend.ts:L101-L122`, `core-libs/core/src/global-message/http-interceptors/http-error.interceptor.ts:L26-L28`.
 8. **Senza `withInterceptorsFromDi()` nessun interceptor class-based è attivo** — `projects/storefrontapp/src/app/app.config.ts:L28-L28`.
-9. **Override concorrenti dello stesso servizio** (es. app + ASM su `AuthHttpHeaderService`): uno dei due viene silenziosamente ignorato — `feature-libs/asm/root/asm-root.module.ts:L73-L76`.
+9. **Override concorrenti dello stesso servizio** (es. app + ASM + Punchout su `AuthHttpHeaderService`): vince l'ultimo provider elaborato, gli altri vengono silenziosamente ignorati — `feature-libs/asm/root/asm-root.module.ts:L73-L76`, `integration-libs/punchout/root/punchout.root.module.ts:L49-L66`.
 10. **Eventi senza listener vanno persi**; i listener vanno istanziati presto (modulo che li inietta nel costruttore) — `core-libs/core/src/event/utils/merging-subject.ts:L45-L80`, `feature-libs/subscription-billing/root/events/subscription-billing-event.module.ts:L8-L13`.
 11. **Eventi derivati da action di feature lazy esistono solo dopo il caricamento del chunk** — `feature-libs/cart/base/core/event/cart-event.module.ts:L10-L15`.
 12. **Non tutto ciò che si vede nel repo è pubblico**: controllare sempre `public_api.ts` del pacchetto (es. `@spartacus/segment-refs/root`) — `integration-libs/segment-refs/root/public_api.ts:L7-L7`.
@@ -1399,6 +1403,6 @@ Riepilogo delle ricette, con il capitolo della Parte II che descrive il meccanis
 5. **In un wrapper module, perché i `providers` vincono su quelli di `OrderModule` importato?** Perché Angular elabora prima i provider degli `imports` e poi quelli del modulo, e un single provider sostituisce il record — `angular:packages/core/src/di/provider_collection.ts:L345-L353`, `angular:packages/core/src/di/r3_injector.ts:L513-L521`.
 6. **Una sottoclasse `@Injectable` di `AuthHttpHeaderService` senza costruttore riceve le dipendenze?** Sì, Angular usa la factory ereditata (`ɵɵgetInheritedFactory`) — `angular:packages/core/src/render3/di.ts:L918-L945`; lo stesso accade per `InternalServerErrorHandler` — `core-libs/core/src/global-message/http-interceptors/handlers/internal-server/internal-server.handler.ts:L13-L29`.
 7. **Perché un interceptor fornito in un modulo lazy non viene eseguito, mentre un `HttpErrorHandler` sì?** La catena degli interceptor è costruita dall'injector root e messa in cache alla prima richiesta; gli `HttpErrorHandler` sono raccolti con `UnifiedInjector.getMulti`, che include gli injector lazy — `angular:packages/common/http/src/backend.ts:L101-L122`, `core-libs/core/src/global-message/http-interceptors/http-error.interceptor.ts:L26-L28`.
-8. **Come fa un handler custom per il 409 a prevalere su `ConflictHandler`?** `ConflictHandler` ha priorità `LOW`; `resolveApplicable` sceglie la più alta, quindi `NORMAL` basta — `core-libs/core/src/global-message/http-interceptors/handlers/conflict/conflict.handler.ts:L26-L28`, `core-libs/core/src/util/applicable.ts:L76-L86`.
+8. **Come fa un handler custom per il 409 a prevalere su `ConflictHandler`?** `ConflictHandler` ha priorità `LOW` e `resolveApplicable` sceglie la più alta, ma le feature lazy di organization registrano handler 409 `NORMAL` e a parità vince l'ultimo registrato (quello lazy): per prevalere in modo affidabile usare `Priority.HIGH` — `core-libs/core/src/global-message/http-interceptors/handlers/conflict/conflict.handler.ts:L26-L28`, `core-libs/core/src/util/applicable.ts:L76-L86`, `feature-libs/organization/user-registration/core/http-interceptors/conflict/conflict.handler.ts:L20-L39`, `core-libs/core/src/lazy-loading/unified-injector.ts:L82-L92`.
 9. **Perché un evento custom con un costruttore `constructor(public id: string)` dà problemi con `dispatch({id}, Tipo)`?** `createFrom` fa `new type()` senza argomenti e poi `Object.assign` — `core-libs/core/src/util/create-from.ts:L15-L17`.
 10. **Cosa succede se si fa `dispatch` di un evento prima che il listener sia sottoscritto?** L'evento va perso: il `MergingSubject` inoltra i valori solo ai consumer presenti — `core-libs/core/src/event/utils/merging-subject.ts:L45-L80`, `core-libs/core/src/event/event.service.ts:L120-L128`.
