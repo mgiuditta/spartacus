@@ -123,7 +123,7 @@ Le altre route (carrello, checkout, my-account...) sono aggiunte dalle feature l
 
 1. **Route "vuote" con nome.** Le feature dichiarano route con `path: null` (con `// @ts-ignore`), un `canActivate: [CmsPageGuard]`, `component: PageLayoutComponent` e `data.cxRoute`. Esempi: `product` (`core-libs/storefront/cms-pages/product-details-page/product-details-page.module.ts:L16-L35`) e `cart` (`feature-libs/cart/base/root/cart-base-root.module.ts:L64-L74`).
 2. **Router vuoto e bloccante.** `AppRoutingModule` registra `routes: []` con `initialNavigation: 'enabledBlocking'` (`core-libs/storefront/router/app-routing.module.ts:L15-L18`).
-3. **Secure portal.** Se `routing.protected` non è definito nella config statica, un `CONFIG_INITIALIZER` (scope `'routing'`) lo ricava dal BaseSite (`core-libs/core/src/routing/routing.module.ts:L44-L52`, `core-libs/core/src/routing/configurable-routes/secure-portal-config/secure-portal-config-initializer.ts:L16-L19`). `resolveConfig()` prende il primo `BaseSite`, lancia un errore se manca e mappa `requiresAuthentication → routing.protected` (`core-libs/core/src/routing/configurable-routes/secure-portal-config/secure-portal-config-initializer.ts:L31-L50`).
+3. **Secure portal.** Se `routing.protected` non è definito nella config statica, un `CONFIG_INITIALIZER` (scope `'routing'`) lo ricava dal BaseSite (`core-libs/core/src/routing/routing.module.ts:L44-L52`, `core-libs/core/src/routing/configurable-routes/secure-portal-config/secure-portal-config-initializer.ts:L16-L19`). `resolveConfig()` prende la prima emissione (`take(1)`) del BaseSite attivo (`baseSiteService.get()` senza uid, `core-libs/core/src/site-context/facade/base-site.service.ts:L63-L69`), lancia un errore se è indefinito e mappa `requiresAuthentication → routing.protected` (`core-libs/core/src/routing/configurable-routes/secure-portal-config/secure-portal-config-initializer.ts:L31-L50`).
 4. **Riscrittura delle route.** Un APP_INITIALIZER chiama `ConfigurableRoutesService.init()` (`core-libs/core/src/routing/routing.module.ts:L93-L95`, `core-libs/core/src/routing/routing.module.ts:L37-L42`). `init()` è idempotente (`core-libs/core/src/routing/configurable-routes/configurable-routes.service.ts:L31-L43`). `configure()` prende il `Router` dall'`Injector`, perché iniettarlo nel costruttore creerebbe una dipendenza ciclica con APP_INITIALIZER. Poi chiama `router.resetConfig(this.configureRoutes(router.config))` (`core-libs/core/src/routing/configurable-routes/configurable-routes.service.ts:L48-L52`). La ricorsione scende anche nei `children` (`core-libs/core/src/routing/configurable-routes/configurable-routes.service.ts:L59-L68`).
 5. **Priorità in `configureRoute`** (`core-libs/core/src/routing/configurable-routes/configurable-routes.service.ts:L83-L106`):
    1. `disabled` → matcher sempre falso (`getFalsy`);
@@ -141,7 +141,7 @@ Le altre route (carrello, checkout, my-account...) sono aggiunte dalle feature l
 
 - `getFromPaths(paths)` crea un matcher per path e li combina. In dev mode aggiunge `_paths` per il debug (`core-libs/core/src/routing/services/url-matcher.service.ts:L33-L40`).
 - `getCombined(matchers)` restituisce il primo risultato non nullo, nell'ordine dell'array (`core-libs/core/src/routing/services/url-matcher.service.ts:L45-L58`).
-- `getFromPath(path)` è una copia adattata del `defaultUrlMatcher` di Angular. Prende il path dall'argomento invece che da `route.path` e gestisce anche `''` (`core-libs/core/src/routing/services/url-matcher.service.ts:L65-L88`). Rispetta `pathMatch: 'full'`, raccoglie `:param` in `posParams` e consuma `parts.length` segmenti (`core-libs/core/src/routing/services/url-matcher.service.ts:L90-L121`). Con path vuoto, e senza `full` o con zero segmenti residui, matcha senza consumare nulla (`core-libs/core/src/routing/services/url-matcher.service.ts:L128-L142`).
+- `getFromPath(path)` è una copia adattata del `defaultUrlMatcher` di Angular. Prende il path dall'argomento invece che da `route.path` e gestisce anche `''` (`core-libs/core/src/routing/services/url-matcher.service.ts:L65-L88`). Rispetta `pathMatch: 'full'`, raccoglie `:param` in `posParams` e consuma `parts.length` segmenti (`core-libs/core/src/routing/services/url-matcher.service.ts:L90-L121`). Con path vuoto matcha senza consumare nulla, tranne quando `pathMatch: 'full'` e ci sono segmenti residui o il gruppo ha figli (`core-libs/core/src/routing/services/url-matcher.service.ts:L128-L142`).
 - `getOpposite(m)` consuma tutto quando `m` **non** matcha, e restituisce `null` quando matcha (`core-libs/core/src/routing/services/url-matcher.service.ts:L162-L176`).
 - `getFromGlob(patterns)` ricostruisce `/seg1/seg2` e lo passa a `GlobService.getValidator` (`core-libs/core/src/routing/services/url-matcher.service.ts:L178-L197`). Il validator richiede che almeno un pattern positivo matchi e nessun pattern negativo (`core-libs/core/src/util/glob.service.ts:L17-L32`).
 
@@ -161,7 +161,7 @@ Per comporre matcher senza perdere i `paths` configurati esiste `DEFAULT_URL_MAT
 - `go(commands, extras)` → `router.navigate(transform(commands), extras)` (`core-libs/core/src/routing/facade/routing.service.ts:L91-L94`, `core-libs/core/src/routing/facade/routing.service.ts:L167-L169`);
 - `goByUrl` → `router.navigateByUrl`, senza traduzione (`core-libs/core/src/routing/facade/routing.service.ts:L131-L133`);
 - `getUrl` → `serializeUrl(createUrlTree(...))` con `/` iniziale garantito; `getFullUrl` vi antepone `winRef.location.origin` (`core-libs/core/src/routing/facade/routing.service.ts:L101-L121`);
-- `back()` usa `location.back()` solo se il referrer è della stessa origin, altrimenti va a `['/']` (`core-libs/core/src/routing/facade/routing.service.ts:L138-L157`).
+- `back()` usa `location.back()` se `document.referrer` contiene (`includes`, test di sottostringa, non confronto di origin) l'origin corrente, altrimenti va a `['/']` (`core-libs/core/src/routing/facade/routing.service.ts:L138-L157`).
 
 `SemanticPathService.get(name)` è la variante "solo stringa": `'/' + paths[0]` (`core-libs/core/src/routing/configurable-routes/url-translation/semantic-path.service.ts:L26-L31`). La usano per esempio `AuthGuard` per `login` (`core-libs/core/src/auth/user-auth/guards/auth.guard.ts:L30-L42`) e il guard per `notFound` (`core-libs/storefront/cms-structure/guards/cms-page-guard.service.ts:L107-L121`).
 
@@ -212,7 +212,7 @@ Le costanti valgono `HOME_PAGE_CONTEXT = '__HOMEPAGE__'` e `SMART_EDIT_CONTEXT =
 ### 3.7 `CmsPageGuard`: decidere quale pagina mostrare
 
 1. **Guard globali prima di tutto.** `BeforeCmsPageGuardService` esegue i guard registrati in `BEFORE_CMS_PAGE_GUARD` tramite `GuardsComposer` (`core-libs/storefront/cms-structure/guards/before-cms-page-guard.service.ts:L17-L33`). Lo storefront vi registra `ProtectedRoutesGuard` e `FederatedLoginGuard` (`core-libs/storefront/cms-structure/routing/routing.module.ts:L27-L36`). Il token è pensato **solo** per guard globali (`core-libs/storefront/cms-structure/guards/before-cms-page-guard.token.ts:L10-L24`).
-2. **Composizione.** `GuardsComposer` esegue i guard in sequenza con `concat`, salta i `true` ed emette il primo risultato diverso da `true` (`false` o `UrlTree`), oppure `true` alla fine (`core-libs/storefront/cms-structure/services/guards-composer.ts:L39-L86`). Ogni guard è normalizzato con `wrapIntoObservable(...).pipe(first())` (`core-libs/storefront/cms-structure/services/guards-composer.ts:L59-L69`).
+2. **Composizione.** `GuardsComposer` invoca subito `canActivate` di ogni guard (dentro `guards.map(...)`) e poi si sottoscrive ai risultati in sequenza con `concat` (`core-libs/storefront/cms-structure/services/guards-composer.ts:L45-L48`): eventuali effetti collaterali sincroni o Promise già avviate partono anche se un guard precedente restituisce `false`/`UrlTree`. Salta i `true` ed emette il primo risultato diverso da `true` (`false` o `UrlTree`), oppure `true` alla fine (`core-libs/storefront/cms-structure/services/guards-composer.ts:L39-L86`). Ogni guard è normalizzato con `wrapIntoObservable(...).pipe(first())` (`core-libs/storefront/cms-structure/services/guards-composer.ts:L59-L69`).
 3. **Contesto in arrivo.** Se i before-guard danno `true`, il guard prende il primo `getNextPageContext()` definito (`core-libs/storefront/cms-structure/guards/cms-page.guard.ts:L55-L60`). Il valore è già presente grazie al timing di `ROUTER_NAVIGATION` (§3.5).
 4. **Caricamento pagina.** `cmsService.getPage(pageContext, shouldReload())`, dove `shouldReload()` è `loadStrategy !== ONCE` (`core-libs/storefront/cms-structure/guards/cms-page.guard.ts:L61-L62`, `core-libs/storefront/cms-structure/guards/cms-page.guard.ts:L89-L91`, `core-libs/core/src/cms/facade/cms.service.ts:L274-L278`).
 5. **Pagina trovata → `canActivatePage`.** Prende i tipi di componente della pagina, ne determina i mapping e ne esegue i guard (`cmsComponents[...].guards`). Se l'esito è `true`, carica i chunk i18n. Se la route non ha già un `cxCmsRouteContext`, chiama `handleCmsRoutesInGuard` (`core-libs/storefront/cms-structure/guards/cms-page-guard.service.ts:L65-L99`). I guard dei componenti sono istanziati via `UnifiedInjector` (`core-libs/storefront/cms-structure/services/cms-guards.service.ts:L36-L48`).
@@ -257,18 +257,18 @@ Le costanti valgono `HOME_PAGE_CONTEXT = '__HOMEPAGE__'` e `SMART_EDIT_CONTEXT =
 ```mermaid
 flowchart TD
     A["AppRoutingModule: RouterModule.forRoot([], enabledBlocking)"] --> B["Feature: route path:null + data.cxRoute"]
-    B --> C{"routing.protected definito staticamente?"}
-    C -- "no" --> D["CONFIG_INITIALIZER SecurePortalConfigInitializer: protected = BaseSite.requiresAuthentication"]
-    C -- "si" --> E
-    D --> E["APP_INITIALIZER initConfigurableRoutes"]
+    B --> AI["APP_INITIALIZER: invocati in sincrono nell'ordine di registrazione, Promise attese in parallelo"]
+    AI --> D["ConfigInitializerModule: CONFIG_INITIALIZER SecurePortalConfigInitializer (solo se routing.protected non definito staticamente): protected = BaseSite.requiresAuthentication"]
+    AI --> E["APP_INITIALIZER initConfigurableRoutes"]
     E --> F["ConfigurableRoutesService.configure: router.resetConfig(configureRoutes(config))"]
     F --> G{"routeConfig"}
     G -- "disabled" --> G1["matcher = getFalsy()"]
     G -- "matchers" --> G2["matcher = getCombined(risolti)"]
     G -- "1 path" --> G3["path nativo Angular"]
     G -- "0 o 2+ path" --> G4["matcher = getFromPaths(paths)"]
-    E --> H["APP_INITIALIZER addCmsRoute: push path '**' + CmsPageGuard"]
-    E --> I["APP_INITIALIZER ExternalRoutes (opzionale): prepend route con matcher opposto"]
+    AI --> H["APP_INITIALIZER addCmsRoute: push path '**' + CmsPageGuard"]
+    AI --> I["APP_INITIALIZER ExternalRoutes (opzionale): prepend route con matcher opposto"]
+    D --> J
     H --> J["LOCATION_INITIALIZED = Promise.all(LOCATION_INITIALIZED_MULTI)"]
     I --> J
     G1 --> J
@@ -278,7 +278,7 @@ flowchart TD
     J --> K["router.initialNavigation()"]
 ```
 
-Riferimenti: `core-libs/storefront/router/app-routing.module.ts:L15-L18`, `core-libs/core/src/routing/routing.module.ts:L44-L52`, `core-libs/core/src/routing/routing.module.ts:L84-L108`, `core-libs/core/src/routing/configurable-routes/configurable-routes.service.ts:L48-L106`, `core-libs/storefront/cms-structure/routing/cms-route/add-cms-route.ts:L12-L25`, `core-libs/core/src/routing/external-routes/external-routes.service.ts:L35-L70`, `angular:packages/router/src/provide_router.ts:L441-L470`.
+Riferimenti: `core-libs/storefront/router/app-routing.module.ts:L15-L18`, `core-libs/core/src/routing/routing.module.ts:L44-L52`, `core-libs/core/src/routing/routing.module.ts:L84-L108`, `core-libs/core/src/routing/configurable-routes/configurable-routes.service.ts:L48-L106`, `core-libs/storefront/cms-structure/routing/cms-route/add-cms-route.ts:L12-L25`, `core-libs/core/src/routing/external-routes/external-routes.service.ts:L35-L70`, `angular:packages/router/src/provide_router.ts:L441-L470`, `angular:packages/core/src/application/application_init.ts:L244-L255`, `angular:packages/core/src/application/application_init.ts:L263-L263`.
 
 ### 4.2 Navigazione verso una pagina CMS: store, guard, reducer
 
@@ -401,7 +401,7 @@ stateDiagram-v2
   }
 ```
 
-Nota il `delete route.path` sull'oggetto **originale**, prima dello spread (vedi §9).
+Nota il `delete route.path` sull'oggetto presente in `router.config` (già una copia shallow fatta da Angular), prima dello spread (vedi §9).
 
 ### 5.2 Traduzione dei comandi semantici
 
@@ -483,7 +483,7 @@ Nota il `delete route.path` sull'oggetto **originale**, prima dello spread (vedi
 
 ### 5.4 Da dove arriva `ROUTER_NAVIGATION` (NgRx 21)
 
-`deps:ngrx-router-store-21.0.1/package/fesm2022/ngrx-router-store.mjs:L232-L256`
+`deps:ngrx-router-store-21.0.1/package/fesm2022/ngrx-router-store.mjs:L232-L254`
 ```js
             else if (event instanceof RoutesRecognized) {
                 routesRecognized = event;
@@ -512,7 +512,7 @@ Nota il `delete route.path` sull'oggetto **originale**, prima dello spread (vedi
 
 ### 5.5 Il serializer riconosce le pagine CMS
 
-`core-libs/core/src/routing/store/reducers/router.reducer.ts:L120-L149`
+`core-libs/core/src/routing/store/reducers/router.reducer.ts:L120-L150`
 ```ts
     while (state.firstChild) {
       state = state.firstChild as CmsActivatedRouteSnapshot;
@@ -707,10 +707,10 @@ Il catalogo completo delle chiavi di config è nell'[appendice A02](../appendici
 
 ## 9. Trappole, casi limite, comportamenti controintuitivi
 
-1. **`configureRoute` muta le route originali.** `delete route.path` / `delete route.matcher` agiscono sull'oggetto passato a `RouterModule.forChild`, prima della copia (`core-libs/core/src/routing/configurable-routes/configurable-routes.service.ts:L84-L99`).
+1. **`configureRoute` muta le route della config del Router.** `delete route.path` / `delete route.matcher` mutano l'oggetto presente in `router.config`, prima dello spread (`core-libs/core/src/routing/configurable-routes/configurable-routes.service.ts:L84-L99`). Quell'oggetto è già una copia shallow fatta da Angular: il costruttore del `Router` chiama `resetConfig`, che applica `standardizeConfig` (`{...r}`) a ogni route (`angular:packages/router/src/router.ts:L163-L163`, `angular:packages/router/src/router.ts:L181-L181`, `angular:packages/router/src/router.ts:L389-L393`, `angular:packages/router/src/components/empty_outlet.ts:L37-L39`). L'oggetto dichiarato in `RouterModule.forChild` non viene toccato; restano condivisi solo i sotto-oggetti come `data`.
 2. **Uno o più path cambiano il motore di matching.** Con un solo path si usa il `path` nativo di Angular. Con 0 o ≥ 2 si usa il matcher Spartacus, e `paths: []` non matcha mai (`core-libs/core/src/routing/configurable-routes/configurable-routes.service.ts:L95-L105`, `core-libs/core/src/routing/services/url-matcher.service.ts:L33-L58`).
 3. **`matchers` non sostituisce `paths` per i link.** La PDP fa il matching con `PRODUCT_DETAILS_URL_MATCHER` ma genera i link dai `paths` di default (`core-libs/core/src/routing/configurable-routes/configurable-routes.service.ts:L89-L94`, `core-libs/core/src/routing/configurable-routes/url-translation/semantic-path.service.ts:L87-L97`).
-4. **Un solo comando non risolvibile azzera l'URL.** `transform` restituisce `['/']` e perde gli altri segmenti (`core-libs/core/src/routing/configurable-routes/url-translation/semantic-path.service.ts:L55-L57`). In dev mode compare solo il warning di `getRouteConfig` (`core-libs/core/src/routing/configurable-routes/routing-config.service.ts:L30-L32`).
+4. **Un solo comando non risolvibile azzera l'URL.** `transform` restituisce `['/']` e perde gli altri segmenti (`core-libs/core/src/routing/configurable-routes/url-translation/semantic-path.service.ts:L55-L57`). In dev mode compare un warning solo se la route non è configurata (`core-libs/core/src/routing/configurable-routes/routing-config.service.ts:L29-L32`); se la route esiste ma mancano i parametri richiesti da tutti i `paths`, `generateUrlPart` restituisce `null` senza alcun avviso (`core-libs/core/src/routing/configurable-routes/url-translation/semantic-path.service.ts:L99-L102`).
 5. **`standarizeRouteCommand` muta l'input**, aggiungendo `params: {}` (`core-libs/core/src/routing/configurable-routes/url-translation/semantic-path.service.ts:L113-L115`).
 6. **L'ordine dei `paths` conta e `null` vale come presente.** Il test è `!== undefined` (`core-libs/core/src/routing/configurable-routes/url-translation/semantic-path.service.ts:L139-L147`).
 7. **`cxUrl` è una pipe pura.** Non dichiara `pure: false` (`core-libs/core/src/routing/configurable-routes/url-translation/url.pipe.ts:L11-L11`) e Angular usa `pure: true` di default (`angular:packages/core/src/metadata/directives.ts:L750-L756`). Se si muta l'oggetto comando senza cambiarne il riferimento, il link non si aggiorna.
@@ -719,8 +719,8 @@ Il catalogo completo delle chiavi di config è nell'[appendice A02](../appendici
 10. **`ProtectedRoutesGuard` guarda `route.url`, non l'URL completo.** Con route annidate i segmenti sono quelli della route su cui gira il guard (`core-libs/core/src/routing/protected-routes/protected-routes.guard.ts:L24-L27`). Per la wildcard `**` coincidono con tutto l'URL residuo.
 11. **Un `protected: false` con `/` iniziale non matcha mai**, perché `getSegments` divide per `/` senza normalizzare (`core-libs/core/src/routing/protected-routes/protected-routes.service.ts:L87-L89`).
 12. **`routing.protected: false` statico disattiva il secure portal del BaseSite** (`core-libs/core/src/routing/routing.module.ts:L48-L51`). Se il BaseSite manca, `SecurePortalConfigInitializer` lancia un errore (`core-libs/core/src/routing/configurable-routes/secure-portal-config/secure-portal-config-initializer.ts:L33-L37`).
-13. **`CmsPageGuard` dipende dal router-store.** Il guard aspetta un `nextPageContext` definito (`core-libs/storefront/cms-structure/guards/cms-page.guard.ts:L58-L60`). In una navigazione normale arriva prima dei guard (§3.5). Due casi lo lasciano senza contesto: una navigazione con trigger "store", in cui NgRx non dispatcha `ROUTER_NAVIGATION` (`deps:ngrx-router-store-21.0.1/package/fesm2022/ngrx-router-store.mjs:L232-L236`), o un `CmsPageGuard` invocato a mano fuori dal Router. In questi casi il guard può non emettere mai.
-14. **Modificare `router.state.url` nello store fa navigare.** Il connettore NgRx confronta lo `state.url` dello slice con `router.url` e, se differiscono, chiama `navigateByUrl` (`deps:ngrx-router-store-21.0.1/package/fesm2022/ngrx-router-store.mjs:L191-L216`). Non scrivete reducer custom sullo slice `router`.
+13. **`CmsPageGuard` dipende dal router-store.** Il guard aspetta un `nextPageContext` definito (`core-libs/storefront/cms-structure/guards/cms-page.guard.ts:L58-L60`). In una navigazione normale arriva prima dei guard (§3.5). Il caso tipico che lo lascia senza contesto è un `CmsPageGuard` invocato a mano fuori dal Router (o un'app che cambia `stateKey` o la struttura dello slice). La navigazione con trigger "store", in cui NgRx non dispatcha `ROUTER_NAVIGATION` (`deps:ngrx-router-store-21.0.1/package/fesm2022/ngrx-router-store.mjs:L232-L236`), con la configurazione standard non si verifica: il trigger `STORE` è impostato solo in `navigateIfNeeded`, che esce sempre per lo slice annidato `router.router` (`deps:ngrx-router-store-21.0.1/package/fesm2022/ngrx-router-store.mjs:L198-L214`, trappola 14). In questi casi il guard può non emettere mai.
+14. **Modificare lo stato del router nello store non fa navigare.** Il connettore NgRx ascolta `select(stateKey)` e, in `navigateIfNeeded`, legge `store[stateKey].state.url` (`deps:ngrx-router-store-21.0.1/package/fesm2022/ngrx-router-store.mjs:L191-L216`). Lo slice Spartacus però è annidato (`router.router`): la feature `'router'` è registrata con una `ActionReducerMap` `{ router: reducer }` e `stateKey: 'router'` (`core-libs/core/src/routing/routing.module.ts:L75-L80`, `core-libs/core/src/routing/store/reducers/router.reducer.ts:L41-L45`). Quindi `navigateIfNeeded` trova `state` indefinito ed esce subito (`deps:ngrx-router-store-21.0.1/package/fesm2022/ngrx-router-store.mjs:L198-L201`): modificare lo stato del router nello store **non** provoca navigazioni. Chi si aspetta la navigazione "store-driven" di NgRx non la otterrà.
 15. **`cmsRequired` riconosce solo `CmsPageGuard` "di classe".** Il controllo cerca `guardName` su una funzione in `canActivate`. Un guard funzionale che incapsula `CmsPageGuard` non viene riconosciuto (`core-libs/core/src/routing/store/reducers/router.reducer.ts:L137-L149`).
 16. **I param vincono su `cxCmsRouteContext`.** `productCode`/`categoryCode`/`brandCode`/`pageLabel` sovrascrivono un contesto CMS trovato più in alto (`core-libs/core/src/routing/store/reducers/router.reducer.ts:L185-L196`).
 17. **Il label di fallback usa solo la foglia**, mentre `lookupSemanticRoute` usa l'URL accumulato su tutta la catena (`core-libs/core/src/routing/store/reducers/router.reducer.ts:L120-L123`, `core-libs/core/src/routing/store/reducers/router.reducer.ts:L198-L201`).
@@ -739,7 +739,7 @@ Il catalogo completo delle chiavi di config è nell'[appendice A02](../appendici
 
 ## 10. Come fare debug
 
-- **Vedere la config effettiva del Router.** Dopo il bootstrap ispezionate `inject(Router).config`. Le route semantiche con matcher custom hanno, in dev mode, la proprietà `_paths` (`core-libs/core/src/routing/services/url-matcher.service.ts:L36-L38`). I suffix matcher hanno `_suffixRouteConfig` (`core-libs/storefront/cms-structure/routing/suffix-routes/suffix-url-matcher.ts:L50-L52`). La wildcard `**` deve essere l'ultima e la route esterna, se presente, la prima.
+- **Vedere la config effettiva del Router.** Dopo il bootstrap ispezionate `inject(Router).config`. Le route semantiche con matcher custom hanno, in dev mode, la proprietà `_paths` (`core-libs/core/src/routing/services/url-matcher.service.ts:L36-L38`). I suffix matcher hanno `_suffixRouteConfig` (`core-libs/storefront/cms-structure/routing/suffix-routes/suffix-url-matcher.ts:L50-L52`). La wildcard `**` deve essere l'ultima e la route esterna, se presente, precede tutte le route configurate, tranne le eventuali route CMS con child routes aggiunte in testa a runtime (`core-libs/storefront/cms-structure/services/cms-routes-impl.service.ts:L119-L119`).
 - **Warning di dev mode.** "No path was configured for the named route" (`core-libs/core/src/routing/configurable-routes/routing-config.service.ts:L30-L32`), "Could not configure the named route" (`core-libs/core/src/routing/configurable-routes/configurable-routes.service.ts:L153-L179`) e l'errore sui path duplicati (`core-libs/core/src/routing/configurable-routes/routing-config.service.ts:L84-L89`) compaiono solo con `isDevMode()`. In produzione un link sbagliato diventa `/` senza avvisi.
 - **Redux DevTools sullo slice `router.router`.** Seguite la sequenza `@ngrx/router-store/request` → `/navigation` (con `nextState.context`) → eventuale `[Router] Change Next PageContext` → `/navigated` oppure `/cancel`. I type sono definiti in `deps:ngrx-router-store-21.0.1/package/fesm2022/ngrx-router-store.mjs:L12-L33` e `core-libs/core/src/routing/store/actions/router.action.ts:L10-L17`. Un `nextState` che resta valorizzato indica una navigazione appesa, tipicamente un guard che non emette.
 - **Quale pagina CMS viene chiesta.** Leggete `nextState.context` (`id`, `type`) e confrontatelo con le regole di §3.6. Un `id` come `'/foo/bar'` di tipo `ContentPage` significa che nessun param/`pageLabel` ha prodotto un contesto e che si è usato il fallback della foglia (`core-libs/core/src/routing/store/reducers/router.reducer.ts:L198-L203`).
