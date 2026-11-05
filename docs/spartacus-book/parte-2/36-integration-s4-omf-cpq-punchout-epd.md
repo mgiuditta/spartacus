@@ -1231,7 +1231,7 @@ export class MyCheckoutExtensionModule {}
 31. **EPD: config letta nel costruttore.** `SceneNodeToProductLookupService` legge `usageIds` nel costruttore con cast: se la config non è completa al momento dell'istanza fallisce (`integration-libs/epd-visualization/core/services/scene-node-to-product-lookup/scene-node-to-product-lookup.service.ts:L35-L43`).
 32. **Collection punchout con factory sbagliata.** Lo schematic `add` punta a `./add-punchout/index#addCustomerTicketingFeatures`, funzione che `add-punchout/index.ts` non esporta (copia da customer-ticketing): solo `ng-add` funziona (`integration-libs/punchout/schematics/collection.json:L12-L16`, `integration-libs/punchout/schematics/add-punchout/index.ts:L25-L25`).
 33. **Collection s4om con factory mancante.** `add-spartacus-library` punta a `./add-library/index#addSpartacusLibrary`, ma `integration-libs/s4om/schematics/` contiene solo `add-s4om`, `collection.json` e `constants.ts` (`integration-libs/s4om/schematics/collection.json:L12-L17`).
-34. **Due entry file in s4om.** `index.ts` e `public_api.ts` esportano lo stesso modulo, ma ng-packagr usa solo `public_api.ts` (`integration-libs/s4om/index.ts:L7-L7`, `integration-libs/s4om/public_api.ts:L10-L10`, `integration-libs/s4om/ng-package.json:L4-L6`).
+34. **Due entry file in s4om.** `index.ts` e `public_api.ts` esportano lo stesso modulo, ma sia ng-packagr sia il path mapping `@spartacus/s4om` usano solo `public_api.ts`: `index.ts` non è referenziato (`integration-libs/s4om/index.ts:L7-L7`, `integration-libs/s4om/public_api.ts:L10-L10`, `integration-libs/s4om/ng-package.json:L4-L6`, `tsconfig.json:L612-L612`).
 
 ## 10. Come fare debug
 
