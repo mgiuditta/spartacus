@@ -100,7 +100,7 @@ I flag diventano **struttura** a import-time dei moduli ES, prima ancora che Ang
 
 `AppModule` importa, in quest'ordine, `BrowserModule`, `StoreModule.forRoot({})`, `AppRoutingModule`, `EffectsModule.forRoot([])`, `SpartacusModule`, e mette `privateProviders` nei propri `providers` (`projects/storefrontapp/src/app/app.module.ts:L15-L25`). `SpartacusModule` importa `BaseStorefrontModule`, `SpartacusFeaturesModule`, `SpartacusConfigurationModule` e ri-esporta `BaseStorefrontModule` (`projects/storefrontapp/src/app/spartacus/spartacus.module.ts:L12-L20`).
 
-Il punto chiave è **l'ordine**: Angular, quando appiattisce un NgModule in lista di provider, include prima i provider degli `imports` e poi quelli dichiarati nel modulo stesso (`angular:packages/core/src/di/provider_collection.ts:L293-L354`). Di conseguenza:
+Il punto chiave è **l'ordine**: Angular, quando appiattisce un NgModule in lista di provider, include prima i moduli importati semplici (ricorsivamente), poi i provider degli import `ModuleWithProviders` (`forRoot()`), che vengono elaborati dopo tutti gli altri import, e infine i `providers` dichiarati nel modulo stesso (`angular:packages/core/src/di/provider_collection.ts:L293-L354`, `angular:packages/core/src/di/provider_collection.ts:L316-L321`). In `AppModule`, quindi, i provider di `StoreModule.forRoot({})` ed `EffectsModule.forRoot([])` entrano dopo l'intero albero di `SpartacusModule`; lo stesso spostamento vale dentro `SpartacusFeaturesModule` per `AuthModule.forRoot()`, `AnonymousConsentsModule.forRoot()`, `ProductModule.forRoot()` ed `ExternalRoutesModule.forRoot()`. Di conseguenza:
 
 1. i chunk di config di `BaseStorefrontModule` e delle librerie entrano per primi;
 2. poi quelli di `SpartacusFeaturesModule` (eager + `*FeatureModule`);
@@ -158,7 +158,7 @@ Varianti degne di nota:
 - `CdsFeatureModule` **non** è lazy: importa `CdsModule.forRoot()` e fornisce `provideConfigFactory(cdsConfigFactory, [WindowRef])` (`projects/storefrontapp/src/app/spartacus/features/cds/cds-feature.module.ts:L84-L102`). `cdsConfigFactory` restituisce `cds1` sul server; nel browser sceglie la prima config il cui `baseSite` compare in `windowRef.location.href`, con fallback `cds1` (`projects/storefrontapp/src/app/spartacus/features/cds/cds-feature.module.ts:L30-L82`).
 - `OpfFeatureModule` importa 9 root module OPF e registra 9 feature lazy in un solo `provideConfig` (`projects/storefrontapp/src/app/spartacus/features/opf/opf-feature.module.ts:L92-L152`); la config di checkout dipende dal canale (`projects/storefrontapp/src/app/spartacus/features/opf/opf-feature.module.ts:L73-L91`).
 - `PersonalizationFeatureModule` importa eager `BaseTmsModule.forRoot()`, `GtmModule`, `AepModule` e configura gli eventi inoltrati ai tag manager (`projects/storefrontapp/src/app/spartacus/features/tracking/personalization-feature.module.ts:L22-L52`).
-- Alcuni feature module sono "solo root": `OmfFeatureModule`, `OppsFeatureModule`, `SegmentRefsFeatureModule`, `ProductMultiDimensionalListFeatureModule`; altri forniscono solo traduzioni (`CpqQuoteFeatureModule`, `EstimatedDeliveryDateFeatureModule`, `S4OMFeatureModule`) (`projects/storefrontapp/src/app/spartacus/features/omf/omf-feature.module.ts:L10-L13`, `projects/storefrontapp/src/app/spartacus/features/cpq-quote/cpq-quote-feature.module.ts:L18-L35`). `OmfRootModule` è addirittura un NgModule vuoto: il codice OMF utile arriva solo con `OmfOrderModule` nel wrapper degli ordini (`integration-libs/omf/root/omf-root.module.ts:L9-L10`).
+- Alcuni feature module sono "solo root": `OmfFeatureModule`, `OppsFeatureModule`, `SegmentRefsFeatureModule`, `ProductMultiDimensionalListFeatureModule`; altri importano il root module e aggiungono solo le traduzioni, senza `featureModules` (`CpqQuoteFeatureModule`, `EstimatedDeliveryDateFeatureModule`, `S4OMFeatureModule`) (`projects/storefrontapp/src/app/spartacus/features/omf/omf-feature.module.ts:L10-L13`, `projects/storefrontapp/src/app/spartacus/features/cpq-quote/cpq-quote-feature.module.ts:L18-L35`). `OmfRootModule` è addirittura un NgModule vuoto: il codice OMF utile arriva solo con `OmfOrderModule` nel wrapper degli ordini (`integration-libs/omf/root/omf-root.module.ts:L9-L10`).
 - `DigitalPaymentsFeatureModule` non importa alcun root module e fornisce solo traduzioni; `DigitalPaymentsModule` entra soltanto nel wrapper lazy del checkout (`projects/storefrontapp/src/app/spartacus/features/digital-payments/digital-payments-feature.module.ts:L17-L33`, `projects/storefrontapp/src/app/spartacus/features/checkout/checkout-wrapper.module.ts:L22-L24`).
 
 ### 3.6 privateProviders e config e2e guidata da cookie
@@ -185,7 +185,7 @@ I `FeatureTogglesChunk` sono fusi con `Object.assign` superficiale, quindi vince
 
 ### 3.8 server.ts: Express e engine decorato
 
-A livello di modulo, `server.ts` costruisce `ssrOptions` con `timeout = Number(process.env['SSR_TIMEOUT'] ?? defaultSsrOptimizationOptions.timeout)` e `cache = process.env['SSR_CACHE'] === 'true'` (`projects/storefrontapp/src/server.ts:L22-L27`). Poi crea l'engine **una sola volta**: `NgExpressEngineDecorator.get(engine, ssrOptions)`, dove `engine` è `ngExpressEngine` di `@spartacus/setup/ssr` (`projects/storefrontapp/src/server.ts:L8-L15`, `projects/storefrontapp/src/server.ts:L29-L29`).
+A livello di modulo, `server.ts` costruisce `ssrOptions` con `timeout = Number(process.env['SSR_TIMEOUT'] ?? defaultSsrOptimizationOptions.timeout)` e `cache = process.env['SSR_CACHE'] === 'true'` (`projects/storefrontapp/src/server.ts:L22-L27`). Poi crea l'engine decorato, cioè una factory: `NgExpressEngineDecorator.get(engine, ssrOptions)`, dove `engine` è `ngExpressEngine` di `@spartacus/setup/ssr` (`projects/storefrontapp/src/server.ts:L8-L15`, `projects/storefrontapp/src/server.ts:L29-L29`). L'istanza di `CxCommonEngine`/`OptimizedSsrEngine` nasce a ogni chiamata di `app()`, quando la factory viene invocata con `{ bootstrap }` in `server.engine('html', ...)`; nella demo `app()` è chiamata una sola volta da `run()` (`core-libs/setup/ssr/engine-decorator/ng-express-engine-decorator.ts:L57-L73`, `projects/storefrontapp/src/server.ts:L51-L56`).
 
 - I default sono `timeout: 3_000`, `cache: false`, `concurrency: 10`, `forcedSsrTimeout: 60_000`, `maxRenderTime: 300_000`, `reuseCurrentRendering: true` e altri (`core-libs/setup/ssr/optimized-engine/ssr-optimization-options.ts:L220-L237`). Il costruttore di `OptimizedSsrEngine` li fonde con le opzioni parziali (`core-libs/setup/ssr/optimized-engine/optimized-ssr-engine.ts:L59-L74`), quindi passare solo `timeout` e `cache` è sufficiente.
 - `decorateExpressEngine` antepone `getServerRequestProviders()` ai provider dell'utente e, se ci sono opzioni di ottimizzazione, avvolge l'istanza in `OptimizedSsrEngine` (`core-libs/setup/ssr/engine-decorator/ng-express-engine-decorator.ts:L51-L74`).
@@ -260,16 +260,16 @@ Riferimenti: `package.json:L16-L16`, `.env-cmdrc:L2-L4`, `projects/storefrontapp
 flowchart LR
   BA["bootstrapApplication(AppComponent, appConfig)"] --> AC["appConfig.providers<br/>HttpClient, hydration, zone"]
   AC --> AM["importProvidersFrom(AppModule)"]
-  AM --> I1["1. BrowserModule"]
-  AM --> I2["2. StoreModule.forRoot / AppRoutingModule / EffectsModule.forRoot"]
-  AM --> SM["3. SpartacusModule"]
-  SM --> S1["3a. BaseStorefrontModule"]
-  SM --> S2["3b. SpartacusFeaturesModule<br/>eager + *FeatureModule + featureModules<br/>+ 107 toggle"]
-  SM --> S3["3c. SpartacusConfigurationModule<br/>layout, media, CMS, pwa, i18n, canale"]
+  AM --> I1["1. BrowserModule / AppRoutingModule"]
+  AM --> SM["2. SpartacusModule"]
+  SM --> S1["2a. BaseStorefrontModule"]
+  SM --> S2["2b. SpartacusFeaturesModule<br/>eager + *FeatureModule + featureModules<br/>+ 107 toggle"]
+  SM --> S3["2c. SpartacusConfigurationModule<br/>layout, media, CMS, pwa, i18n, canale"]
+  AM --> I2["3. provider di StoreModule.forRoot / EffectsModule.forRoot<br/>(import ModuleWithProviders, elaborati dopo gli altri import)"]
   AM --> PP["4. providers: privateProviders<br/>backend, routing, TestConfigModule (ultimo)"]
 ```
 
-L'ordine numerico è l'ordine in cui i provider entrano nella lista (prima gli `imports`, poi i `providers`): `projects/storefrontapp/src/app/app.module.ts:L15-L25`, `projects/storefrontapp/src/app/spartacus/spartacus.module.ts:L12-L20`, `angular:packages/core/src/di/provider_collection.ts:L293-L354`.
+L'ordine numerico è l'ordine in cui i provider entrano nella lista (prima gli `imports` semplici, poi i provider degli import `forRoot()`, poi i `providers`): `projects/storefrontapp/src/app/app.module.ts:L15-L25`, `projects/storefrontapp/src/app/spartacus/spartacus.module.ts:L12-L20`, `angular:packages/core/src/di/provider_collection.ts:L293-L354`, `angular:packages/core/src/di/provider_collection.ts:L316-L321`.
 
 ### 4.3 Richiesta SSR
 
@@ -564,7 +564,7 @@ export function app(): express.Express {
 
 ### 5.9 Engine decorato (libreria)
 
-`core-libs/setup/ssr/engine-decorator/ng-express-engine-decorator.ts:L51-L74`
+`core-libs/setup/ssr/engine-decorator/ng-express-engine-decorator.ts:L59-L72`
 ```ts
     const engineInstance = ngExpressEngine({
       ...setupOptions,
@@ -574,6 +574,8 @@ export function app(): express.Express {
         ...(setupOptions.providers ?? []),
       ],
     });
+
+    // apply optimization wrapper if optimization options were defined
     return optimizationOptions
       ? new OptimizedSsrEngine(engineInstance, optimizationOptions)
           .engineInstance
@@ -668,8 +670,8 @@ La demo è soprattutto un **catalogo di esempi** degli extension point pubblici.
 10. **CDS sceglie la config per sottostringa dell'URL.** `location.href.includes(baseSite)` e, sul server, sempre `cds1`: SSR e browser possono divergere (`projects/storefrontapp/src/app/spartacus/features/cds/cds-feature.module.ts:L30-L82`).
 11. **Placeholder non funzionanti** nella config demo: `JS_SDK_URL_PLACEHOLDER` (CDC), `A_CDS_*` (CDS 2), `ADD_COMMERCE_CLOUD_PUBLIC_KEY_HERE` (OPF) (`projects/storefrontapp/src/app/spartacus/features/cdc/cdc-feature.module.ts:L20-L33`, `projects/storefrontapp/src/app/spartacus/features/opf/opf-feature.module.ts:L186-L193`).
 12. **Statici per qualunque path con un punto** (`/.*\..*/`): anche URL applicative con un punto passano prima da `express.static` (`projects/storefrontapp/src/server.ts:L61-L67`). ⚠️ DA VERIFICARE il fallthrough di `express.static` verso il catch-all di rendering quando il file non esiste: il pacchetto `express` non è disponibile in `/tmp/deps`.
-13. **`index.server.html` è letto con `readFileSync` all'avvio.** Se manca (build `noSsr` o dist incompleto), `app()` lancia prima di `listen` (`projects/storefrontapp/src/server.ts:L36-L37`).
-14. **Nessun `allowedHosts` in codice.** Senza `NG_ALLOWED_HOSTS`, o con un host diverso, `CommonEngine` degrada a CSR con un errore in console (`projects/storefrontapp/src/server.ts:L51-L56`, `deps:angular-ssr-21.2.23/package/fesm2022/node.mjs:L113-L130`).
+13. **`index.server.html` è letto con `readFileSync` all'avvio.** Se manca (dist incompleto o non coerente, per esempio un `server/` vecchio), `app()` lancia prima di `listen` (`projects/storefrontapp/src/server.ts:L36-L37`). Con un build `noSsr` (`ssr: false`) non c'è proprio un server da avviare (`projects/storefrontapp/project.json:L177-L180`).
+14. **Nessun `allowedHosts` in codice.** Senza `NG_ALLOWED_HOSTS` (e senza `allowedHosts`), `CommonEngine` logga un errore e degrada a CSR. Se invece `NG_ALLOWED_HOSTS` è impostata (come in tutti gli script `serve:ssr*`) e l'host della richiesta non vi compare, `render` lancia l'errore `URL with hostname "..." is not allowed.`, senza fallback (`projects/storefrontapp/src/server.ts:L51-L56`, `deps:angular-ssr-21.2.23/package/fesm2022/node.mjs:L119-L133`, `deps:angular-ssr-21.2.23/package/fesm2022/_validation-chunk.mjs:L15-L22`).
 15. **`trust proxy = 'loopback'`.** Dietro un reverse proxy non loopback `X-Forwarded-Host` viene ignorato e l'origin (usata dall'allowlist e da `SERVER_REQUEST_ORIGIN`) è l'header `Host` (`projects/storefrontapp/src/server.ts:L39-L39`, `core-libs/setup/ssr/express-utils/express-request-origin.ts:L9-L26`).
 16. **Il prerender richiede `SERVER_REQUEST_ORIGIN`**, altrimenti `serverRequestOriginFactory` lancia (`core-libs/setup/ssr/providers/server-request-origin.ts:L14-L40`).
 17. **Il build production compila contro `dist/`.** `tsconfig.app.prod.json` mappa `@spartacus/*` su `dist/*`, quindi `build`/`build:ssr` (default `production`) richiedono le librerie già buildate, mentre `start` usa i sorgenti (`projects/storefrontapp/tsconfig.app.prod.json:L508-L509`, `projects/storefrontapp/project.json:L172-L188`).
@@ -678,7 +680,7 @@ La demo è soprattutto un **catalogo di esempi** degli extension point pubblici.
 20. **`lib-customer-ticketing`, `lib-s4om`, `lib-subscription-billing` non importano `styles-config`**, quindi per quelle librerie `$useLatestStyles` resta al default `false` (`projects/storefrontapp/src/styles/lib-customer-ticketing.scss:L1-L1`, `core-libs/styles/scss/_versioning.scss:L46-L46`).
 21. **`"types": ["node"]` fuori da `compilerOptions`** in `tsconfig.app.json`, dove TypeScript non lo considera un'opzione di compilazione (`projects/storefrontapp/tsconfig.app.json:L3-L11`).
 22. **Script non uniformi.** `build:ssr:ci` e `test:ssr` non usano `--no-override` (`package.json:L54-L57`, `package.json:L156-L157`); `start:opf`/`start:punchout` non includono né `dev` né `b2c` (`package.json:L137-L141`), e l'ambiente `punchout` non definisce `CX_BASE_URL` (`.env-cmdrc:L101-L104`).
-23. **`.env-cmdrc` contiene IP e host di ambienti interni**, spesso con certificati self-signed: per questo gli script SSR usano `NODE_TLS_REJECT_UNAUTHORIZED=0` (`.env-cmdrc:L3-L3`, `package.json:L153-L155`). Non va riprodotto in produzione.
+23. **`.env-cmdrc` contiene IP e host di ambienti interni** (`.env-cmdrc:L3-L3`). Gli script `serve:ssr:watch`, `serve:ssr:ci`, `serve:ssr:dev` e `prerender` disabilitano la verifica TLS con `NODE_TLS_REJECT_UNAUTHORIZED=0` (⚠️ DA VERIFICARE il motivo: nessun file del repo lo spiega; presumibilmente i certificati degli ambienti in `.env-cmdrc`, ad es. un host raggiunto per IP). `serve:ssr` non la imposta (`package.json:L152-L155`, `package.json:L158-L158`). Non va riprodotto in produzione.
 
 ## 10. Come fare debug
 
@@ -687,7 +689,7 @@ La demo è soprattutto un **catalogo di esempi** degli extension point pubblici.
 - **NgRx DevTools** sono attivi solo nei build non production (`projects/storefrontapp/src/app/private/private.providers.ts:L55-L55`).
 - **Stack trace leggibili**: in sviluppo `environment.ts` importa `zone.js/plugins/zone-error` (`projects/storefrontapp/src/environments/environment.ts:L12-L19`).
 - **Una feature non si carica?** Verificare che la chiave in `featureModules` abbia sia `cmsComponents` (dal root module) sia `module` (dall'app); altrimenti `CmsFeaturesService` non mappa il componente (`core-libs/storefront/cms-structure/services/cms-features.service.ts:L56-L76`) e `FeatureModulesService` lancia "No module defined for Feature Module" (`core-libs/core/src/lazy-loading/feature-modules.service.ts:L42-L73`). Nel pannello Network del browser si vede il chunk lazy richiesto al primo componente.
-- **SSR che restituisce sempre CSR?** Guardare la console di Node: senza `NG_ALLOWED_HOSTS` adeguato compare l'errore "Falling back to client side rendering" (`deps:angular-ssr-21.2.23/package/fesm2022/node.mjs:L113-L130`). Altrimenti aumentare `SSR_TIMEOUT` (gli script di sviluppo usano 30000, `package.json:L153-L155`) e consultare i log dell'engine ottimizzato ([cap. 39](../parte-2/39-ssr-ottimizzato.md)).
+- **SSR che restituisce sempre CSR?** Guardare la console di Node: senza alcun allowed host configurato (né `NG_ALLOWED_HOSTS` né `allowedHosts`) compare l'errore "Falling back to client side rendering"; se invece `NG_ALLOWED_HOSTS` è impostata ma non contiene l'host richiesto, la richiesta fallisce con `URL with hostname "..." is not allowed.` senza fallback (`deps:angular-ssr-21.2.23/package/fesm2022/node.mjs:L113-L133`). Altrimenti aumentare `SSR_TIMEOUT` (gli script di sviluppo usano 30000, `package.json:L153-L155`) e consultare i log dell'engine ottimizzato ([cap. 39](../parte-2/39-ssr-ottimizzato.md)).
 - **400 Bad Request su tutte le richieste SSR**: `SSR_ALLOWED_ORIGINS` è impostata e l'origin calcolata non corrisponde; ricordare `trust proxy = 'loopback'` (`projects/storefrontapp/src/server.ts:L39-L49`).
 - **Ciclo di sviluppo SSR**: `npm run dev:ssr` ricompila in watch e riavvia Node quando cambia `dist/storefrontapp/server/` (`package.json:L151-L153`).
 - **Test Karma della demo con NG0100**: vedere il workaround `ZoneChangeDetectionModule` in `projects/storefrontapp/src/test.ts:L30-L46`.

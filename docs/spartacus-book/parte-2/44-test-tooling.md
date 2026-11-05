@@ -330,7 +330,7 @@ flowchart LR
   H --> I["i18n-lint su alt, title, placeholder, aria-label"]
 ```
 
-Riferimenti: `ci-scripts/validate-lint.sh:L11-L109`, `core-libs/core/project.json:L27-L35`, `eslint.config.mjs:L18-L258`, `tools/eslint-rules/index.ts:L76-L101`, `.stylelintrc.json:L1-L28`, `package.json:L128-L131`.
+Riferimenti: `ci-scripts/validate-lint.sh:L11-L109`, `core-libs/core/project.json:L27-L35`, `eslint.config.mjs:L18-L258`, `tools/eslint-rules/index.ts:L76-L101`, `.stylelintrc.json:L1-L44`, `package.json:L128-L131`.
 
 ### 4.4 Mappa dei runner per tipo di file
 
