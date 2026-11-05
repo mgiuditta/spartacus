@@ -783,7 +783,7 @@ Ricette pratiche (Parte III):
    `ltr`: `rtlLanguages` è `['he','ar']` e il confronto è esatto, quindi `ar_SA` non corrisponde e si ricade su `default: LTR`. — `core-libs/storefront/layout/direction/config/default-direction.config.ts:L10-L19`, `core-libs/storefront/layout/direction/direction.service.ts:L104-L112`.
 
 9. **Perché le variabili Sass impostate solo in `styles.scss` non influenzano il bundle CSS di `@spartacus/cart`?**
-   Perché ogni feature lib ha un bundle separato, compilato a partire da `styles-config` e dall'entry della lib che reimporta `scss/core`: è una compilazione indipendente. — `projects/storefrontapp/project.json:L43-L54`, `projects/storefrontapp/src/styles/lib-cart.scss:L1-L2`, `feature-libs/cart/_index.scss:L1-L3`.
+   Perché ogni feature lib ha un bundle separato, compilato a partire dall'entry della lib che reimporta `scss/core` e, in 21 bundle su 24, da `styles-config`: è una compilazione indipendente. — `projects/storefrontapp/project.json:L43-L54`, `projects/storefrontapp/src/styles/lib-cart.scss:L1-L2`, `feature-libs/cart/_index.scss:L1-L3`.
 
 10. **Il breakpoint `md` vale 992 in TypeScript e 768px in Bootstrap: è un bug?**
     No: in `BreakpointService` i numeri sono larghezze massime (md termina a 992), in Bootstrap sono minimi (md parte da 768px). I confini coincidono, la semantica è diversa. — `core-libs/storefront/layout/breakpoint/breakpoint.service.ts:L161-L176`, `core-libs/styles/vendor/bootstrap/scss/_variables.scss:L207-L213`.
