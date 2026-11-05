@@ -91,6 +91,19 @@ Digital Payments e OPPS sono molto più piccoli e li trattiamo in fondo a §3.
 | `projects/storefrontapp/src/app/spartacus/features/checkout/checkout-wrapper.module.ts` | `DigitalPaymentsModule` dentro il chunk checkout (`:L22-L33`). |
 | `projects/storefrontapp/src/app/spartacus/features/opps/opps-feature.module.ts` | Import eager di `OppsRootModule` (`:L10-L13`). |
 
+### File aggiuntivi
+
+| Path | Ruolo |
+|---|---|
+| `integration-libs/digital-payments/assets/public_api.ts` | entry point `assets` di digital-payments: riesporta `translations/translations` (chunk `dpPaymentForm` e traduzioni per lingua) |
+| `integration-libs/digital-payments/schematics/add-digital-payments/index.ts` | rule `ng add` di `@spartacus/digital-payments` (`addDigitalPaymentsFeature`) |
+| `integration-libs/digital-payments/schematics/add-digital-payments/index_spec.ts` | test Jest dello schematic DP (registra la collection checkout e installa prima checkout base) |
+| `integration-libs/opf/schematics/add-opf/index.ts` | rule `ng add` di `@spartacus/opf` (`addOpfFeature`) |
+| `integration-libs/opf/schematics/add-opf/index_spec.ts` | test Jest dello schematic OPF per le feature base, checkout, payment, CTA, global functions, quick buy, gift card, tokenisation |
+| `integration-libs/opps/public_api.ts` | entry point primario `@spartacus/opps`: riesporta `root/public_api` |
+| `integration-libs/opps/schematics/add-opps/index.ts` | rule `ng add` di `@spartacus/opps` (`addOppsFeature`) |
+| `integration-libs/opps/schematics/add-opps/index_spec.ts` | test Jest dello schematic OPPS (richiede prima personalization) |
+
 ## 3. Come funziona passo per passo
 
 ### 3.1 Wiring: root module eager, moduli lazy, scelta B2B/B2C
@@ -208,6 +221,10 @@ Digital Payments e OPPS sono molto più piccoli e li trattiamo in fondo a §3.
 1. `OppsRootModule` importa `OppsCouponCodesModule` e `OppsLoginRequiredModule` e fornisce `defaultOppsConfig` (`integration-libs/opps/root/opps-root.module.ts:L13-L17`); default: header e parametro `couponcodes`, storage `opps-couponcodes`, parametro login `loginRequired` (`integration-libs/opps/root/config/default-opps-config.ts:L9-L20`).
 2. **Coupon.** Un location initializer legge `couponcodes` dall'URL e lo salva in `localStorage` (`integration-libs/opps/root/coupon-codes/opps-coupon-codes.module.ts:L12-L29`, `integration-libs/opps/root/coupon-codes/opps-coupon-codes.service.ts:L18-L31`). `OccOppsCouponCodesInterceptor` (registrato con `useExisting`) legge il coupon nel costruttore e, nel browser, aggiunge l'header alle richieste verso la base URL OCC (`integration-libs/opps/root/coupon-codes/http-interceptors/index.ts:L11-L17`, `integration-libs/opps/root/coupon-codes/http-interceptors/occ-opps-coupon-codes.interceptor.ts:L28-L64`).
 3. **Login richiesto.** `OppsLoginRequiredGuard` è aggiunto al multi-token `BEFORE_CMS_PAGE_GUARD` (root, factory `[]`): se l'utente è anonimo e c'è `?loginRequired=true`, salva l'URL di redirect e rimanda alla pagina di login (`integration-libs/opps/root/login-required/opps-login-required.module.ts:L11-L20`, `integration-libs/opps/root/login-required/opps-login-required.guard.ts:L29-L61`, `core-libs/storefront/cms-structure/guards/before-cms-page-guard.token.ts:L22-L24`).
+
+### 3.13 Schematic di installazione
+
+`addOpfFeature`, `addDigitalPaymentsFeature` e `addOppsFeature` seguono la sequenza comune: `validateSpartacusInstallation`, `analyzeCrossFeatureDependencies`, poi `chain([analyzeApplication, addFeatures, addPackageJsonDependenciesForLibrary(peerDependencies), finalizeInstallation])` (`integration-libs/opf/schematics/add-opf/index.ts:L25-L43`, `integration-libs/digital-payments/schematics/add-digital-payments/index.ts:L25-L45`, `integration-libs/opps/schematics/add-opps/index.ts:L25-L43`). Gli spec mostrano le dipendenze tra librerie: digital-payments registra la collection di `@spartacus/checkout` prima di generare il workspace (`integration-libs/digital-payments/schematics/add-digital-payments/index_spec.ts:L50-L59`); OPF registra le collection Spartacus e checkout e ricrea workspace, applicazione e `ng-add` base in un `beforeEach` (`integration-libs/opf/schematics/add-opf/index_spec.ts:L111-L147`); OPPS installa prima la feature personalization (`integration-libs/opps/schematics/add-opps/index_spec.ts:L56-L73`). L'entry point primario di OPPS espone solo il root (`integration-libs/opps/public_api.ts:L7-L7`), mentre `integration-libs/digital-payments/assets/public_api.ts` riesporta le traduzioni (`integration-libs/digital-payments/assets/public_api.ts:L7-L7`).
 
 ## 4. Diagrammi
 

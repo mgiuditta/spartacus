@@ -4,7 +4,7 @@
 
 ## 1. A cosa serve e perché esiste
 
-Un'app Angular 21 può nascere in due modi: dal **bootstrap standalone** (`bootstrapApplication(RootComponent, appConfig)`) o dal **bootstrap per NgModule** (`platformBrowser().bootstrapModule(AppModule)`). Entrambi finiscono nella stessa funzione interna `bootstrap()` (`angular:packages/core/src/platform/bootstrap.ts:L69-L73`) e, quando c'è di mezzo un NgModule, entrambi usano lo stesso algoritmo di appiattimento dei provider, `walkProviderTree` (`angular:packages/core/src/di/create_injector.ts:L42-L56`, `angular:packages/core/src/di/provider_collection.ts:L151-L189`).
+Un'app Angular 21 può nascere in due modi: dal **bootstrap standalone** (`bootstrapApplication(RootComponent, appConfig)`) o dal **bootstrap per NgModule** (`platformBrowser().bootstrapModule(AppModule)`). Entrambi finiscono nella stessa funzione interna `bootstrap()` (`angular:packages/core/src/platform/bootstrap.ts:L75-L181`) e, quando c'è di mezzo un NgModule, entrambi usano lo stesso algoritmo di appiattimento dei provider, `walkProviderTree` (`angular:packages/core/src/di/create_injector.ts:L42-L56`, `angular:packages/core/src/di/provider_collection.ts:L151-L189`).
 
 Spartacus si trova esattamente a cavallo tra i due mondi:
 
@@ -241,7 +241,7 @@ Se si passa a `bootstrapApplication` un componente non standalone, `assertStanda
 - `main.ts` chiama `bootstrapApplication(AppComponent, appConfig)` dopo `enableProdMode()` se `environment.production` e logga l'errore con `console.error` (`projects/storefrontapp/src/main.ts:L13-L23`).
 - `AppComponent` è standalone (nessun `standalone: false`), selettore `app-root`, template `<cx-storefront />`, `imports: [StorefrontComponent]` (`projects/storefrontapp/src/app/app.component.ts:L10-L19`).
 - `appConfig` fornisce `provideHttpClient(withFetch(), withInterceptorsFromDi())`, `provideClientHydration(withEventReplay(), withNoHttpTransferCache())`, `provideZoneChangeDetection({eventCoalescing: true})`, `provideBrowserGlobalErrorListeners()` e infine `importProvidersFrom(AppModule)` (`projects/storefrontapp/src/app/app.config.ts:L26-L35`). Il ruolo di `withInterceptorsFromDi()` per gli `HTTP_INTERCEPTORS` multi registrati dai moduli Spartacus ⚠️ DA VERIFICARE: implementazione non letta in questo capitolo (la catena di interceptor è trattata in [06 — HttpClient e interceptor](06-httpclient-interceptor.md)).
-- Server: `main.server.ts` esporta di default `bootstrap = (context: BootstrapContext) => bootstrapApplication(AppComponent, config, context)` (`projects/storefrontapp/src/main.server.ts:L23-L26`); `server.ts` la passa a `ngExpressEngine({bootstrap, ...})` (`projects/storefrontapp/src/server.ts:L20-L20`, `projects/storefrontapp/src/server.ts:L53-L54`). ⚠️ DA VERIFICARE qui chi costruisce il `BootstrapContext` per richiesta: è nel motore SSR (vedi [07](07-ssr-hydration-transferstate.md) e [39 — SSR ottimizzato](../parte-2/39-ssr-ottimizzato.md)).
+- Server: `main.server.ts` esporta di default `bootstrap = (context: BootstrapContext) => bootstrapApplication(AppComponent, config, context)` (`projects/storefrontapp/src/main.server.ts:L23-L26`); `server.ts` la passa a `ngExpressEngine({bootstrap, ...})` (`projects/storefrontapp/src/server.ts:L20-L20`, `projects/storefrontapp/src/server.ts:L53-L54`). Il `BootstrapContext` per richiesta lo costruisce `renderApplication` di `@angular/platform-server`, che crea una piattaforma server e chiama `bootstrap({platformRef})` (`angular:packages/platform-server/src/utils.ts:L359-L362`); `CommonEngine` di `@angular/ssr` invoca `renderApplication` quando riceve una funzione di bootstrap (`deps:angular-ssr-21.2.23/package/fesm2022/node.mjs:L203-L203`). Dettagli del motore in [07](07-ssr-hydration-transferstate.md) e [39 — SSR ottimizzato](../parte-2/39-ssr-ottimizzato.md).
 - `config` server = `mergeApplicationConfig(appConfig, serverConfig)`, con `serverConfig` che aggiunge `provideServerRendering()`, `importProvidersFrom(AppServerModule)` e `importProvidersFrom(TestConfigServerModule.forRoot())` ("DO NOT USE IN CUSTOMERS APPS") (`projects/storefrontapp/src/app/app.config.server.ts:L17-L30`). `AppServerModule` contiene solo `providers: [...provideServer({serverRequestOrigin: process.env['SERVER_REQUEST_ORIGIN']})]`, e `provideServer` restituisce `Provider[]` (`projects/storefrontapp/src/app/app.module.server.ts:L10-L17`, `core-libs/setup/ssr/providers/ssr-providers.ts:L27-L27`).
 
 ### 3.13 Spartacus: `AppModule` come ponte
@@ -292,7 +292,7 @@ La coppia `forRoot()`/`forChild()` di `OutletModule` mostra perché Spartacus ha
 
 Il dettaglio delle regole è nel [capitolo 43](../parte-2/43-schematics-migrazioni.md); qui il collegamento con i concetti del capitolo.
 
-- È registrato in `collection.json`, non in `migrations.json`: va lanciato esplicitamente, non parte con `ng update` (`core-libs/schematics/src/collection.json:L49-L52`). ⚠️ DA VERIFICARE la sintassi esatta del comando (presumibilmente `ng generate @spartacus/schematics:modernize-app-to-standalone-bootstrap-application`): non presente nel codice letto.
+- È registrato in `collection.json`, non in `migrations.json`: va lanciato esplicitamente, non parte con `ng update` (`core-libs/schematics/src/collection.json:L49-L52`). Si lancia con `ng g @spartacus/schematics:modernize-app-to-standalone-bootstrap-application` (`docs/migration/221121_7/modernize-app-to-standalone-bootstrap-application.md:L16-L16`).
 - `migrate()` concatena 5 regole comuni (AppComponent, AppModule, app.config, main.ts, angular.json) e, se `isSsrUsed(tree)`, 5 regole SSR, ognuna avvolta in `withFallbackDocsForStandaloneBootstrap` (`core-libs/schematics/src/modernize-app-to-standalone-bootstrap-application/index.ts:L26-L54`), che cattura l'eccezione, logga un link alla guida e restituisce il tree invariato (`core-libs/schematics/src/modernize-app-to-standalone-bootstrap-application/fallback-advice-to-follow-docs.ts:L28-L43`).
 - Mappatura sui concetti di questo capitolo:
   - `updateAppComponent` rende `AppComponent` standalone (rimuove `standalone`, aggiunge `StorefrontComponent` a `imports`) — §3.5 (`core-libs/schematics/src/modernize-app-to-standalone-bootstrap-application/csr-and-ssr/update-app-component.ts:L22-L66`);
@@ -309,11 +309,11 @@ Applichiamo §3.4 a `importProvidersFrom(AppModule)`:
 
 1. `walkProviderTree(AppModule)` — `angular:packages/core/src/di/provider_collection.ts:L151-L182`.
 2. `BrowserModule` (tipo): visita i suoi import di injector (`CommonModule`, `ApplicationModule` da `exports`, §3.1), poi emette i 3 provider sintetici e `BROWSER_MODULE_PROVIDERS + TESTABILITY_PROVIDERS` — `projects/storefrontapp/src/app/app.module.ts:L16-L17`, `angular:packages/platform-browser/src/browser.ts:L287-L290`, `angular:packages/core/src/di/provider_collection.ts:L292-L354`.
-3. `StoreModule.forRoot({})` (MWP): visita `StoreModule`, ma i suoi `providers` sono **rinviati** alla fine degli import di `AppModule` — `angular:packages/core/src/di/provider_collection.ts:L303-L321`.
+3. `StoreModule.forRoot({})` (MWP con `ngModule: StoreRootModule`, `deps:ngrx-store-21.0.1/package/fesm2022/ngrx-store.mjs:L1543-L1547`): visita `StoreRootModule`, ma i `providers` del MWP sono **rinviati** alla fine degli import di `AppModule` — `angular:packages/core/src/di/provider_collection.ts:L303-L321`.
 4. `AppRoutingModule` (tipo): visita `RouterModule.forRoot(...)`; a fine import di `AppRoutingModule` emette i provider del router (incluso `UrlSerializer` → `DefaultUrlSerializer`), poi quelli di `AppRoutingModule` — `core-libs/storefront/router/app-routing.module.ts:L13-L30`, `angular:packages/router/src/router_module.ts:L69-L71`.
-5. `EffectsModule.forRoot([])` (MWP): rinviato come al passo 3.
+5. `EffectsModule.forRoot([])` (MWP con `ngModule: EffectsRootModule`, `deps:ngrx-effects-21.0.1/package/fesm2022/ngrx-effects.mjs:L485-L489`): rinviato come al passo 3.
 6. `SpartacusModule` → `BaseStorefrontModule` → `BaseCoreModule.forRoot()` (equivale al tipo) → 16 MWP visitati; a fine import di `BaseCoreModule` sono emessi i loro `providers` in ordine dichiarato, incluso `UrlSerializer` → `SiteContextUrlSerializer` — `core-libs/storefront/base-storefront.module.ts:L28-L28`, `core-libs/core/src/base-core.module.ts:L27-L45`, `angular:packages/core/src/di/provider_collection.ts:L316-L321`.
-7. Resto di `BaseStorefrontModule`: moduli UI, poi a fine import i provider di `PageComponentModule.forRoot()`, `RoutingModule.forRoot()`, `MediaModule.forRoot()`, `OutletModule.forRoot()` (anche se `OutletModule` era già stato visitato al passo precedente come tipo), `CmsLcpModule.forRoot()` — `core-libs/storefront/base-storefront.module.ts:L36-L44`, `angular:packages/core/src/di/provider_collection.ts:L360-L362`.
+7. Resto di `BaseStorefrontModule`: moduli UI, poi a fine import i provider di `PageComponentModule.forRoot()`, `RoutingModule.forRoot()`, `MediaModule.forRoot()`, `OutletModule.forRoot()` (anche se `OutletModule` era già stato visitato come tipo poco prima, nello stesso `BaseStorefrontModule`: `core-libs/storefront/base-storefront.module.ts:L31-L31` e `core-libs/storefront/base-storefront.module.ts:L43-L43`), `CmsLcpModule.forRoot()` — `core-libs/storefront/base-storefront.module.ts:L36-L44`, `angular:packages/core/src/di/provider_collection.ts:L360-L362`.
 8. `SpartacusFeaturesModule`, `SpartacusConfigurationModule` — `projects/storefrontapp/src/app/spartacus/spartacus.module.ts:L13-L17`.
 9. Fine import di `AppModule`: i provider rinviati di `StoreModule.forRoot({})` ed `EffectsModule.forRoot([])` — `angular:packages/core/src/di/provider_collection.ts:L319-L321`.
 10. Provider sintetici di `AppModule`, poi `privateProviders` (ultimi della lista) — `angular:packages/core/src/di/provider_collection.ts:L324-L354`, `projects/storefrontapp/src/app/app.module.ts:L23-L23`.
@@ -352,7 +352,7 @@ sequenceDiagram
     Boot-->>Main: "Promise<ApplicationRef>"
 ```
 
-Ogni passo: §3.3 (riga 1), §3.7 (righe 2-7), §3.9 (righe 8-11), §3.5 e §3.10 (righe 12-13).
+Ogni passo: §3.3 (riga 1), §3.7 (righe 2-8), §3.9 (righe 9-12 e 15), §3.5 e §3.10 (righe 13-14).
 
 ### 4.2 `walkProviderTree` per un singolo contenitore
 
@@ -411,12 +411,12 @@ Riferimenti: §3.7, §3.8, §3.9, §3.16.
 flowchart TD
     CFG["appConfig.providers"] --> IPF["importProvidersFrom(AppModule)"]
     IPF --> AM["AppModule"]
-    AM --> BM["1. BrowserModule"]
-    AM --> SM["2. StoreModule.forRoot (providers rinviati a 9)"]
-    AM --> ARM["3. AppRoutingModule"]
+    AM --> BM["2. BrowserModule"]
+    AM --> SM["3. StoreModule.forRoot -> StoreRootModule (providers rinviati a 9)"]
+    AM --> ARM["4. AppRoutingModule"]
     ARM --> RMF["RouterModule.forRoot: UrlSerializer = DefaultUrlSerializer"]
-    AM --> EM["4. EffectsModule.forRoot (providers rinviati a 9)"]
-    AM --> SPM["5. SpartacusModule"]
+    AM --> EM["5. EffectsModule.forRoot -> EffectsRootModule (providers rinviati a 9)"]
+    AM --> SPM["6-8. SpartacusModule"]
     SPM --> BSM["BaseStorefrontModule"]
     BSM --> BCM["BaseCoreModule.forRoot (nessun providers)"]
     BCM --> SCM["SiteContextModule.forRoot: UrlSerializer = SiteContextUrlSerializer"]
@@ -426,7 +426,7 @@ flowchart TD
     AM --> PP["10. privateProviders (in coda)"]
 ```
 
-Riferimenti: §3.13, §3.14, §3.17.
+Riferimenti: §3.13, §3.14, §3.17 (i numeri nei nodi sono i passi del §3.17); `projects/storefrontapp/src/app/app.module.ts:L16-L23`.
 
 ## 5. Estratti di codice reale
 
@@ -885,8 +885,8 @@ export class ConfigModule {
 | `BootstrapContext.platformRef` | `PlatformRef` | `undefined` → piattaforma creata/riusata | `angular:packages/platform-browser/src/browser.ts:L58-L63` | `angular:packages/core/src/application/create_application.ts:L57-L58` |
 | `ENABLE_ROOT_COMPONENT_BOOTSTRAP` | `InjectionToken<boolean>` | `true` | `angular:packages/core/src/platform/bootstrap.ts:L51-L53` | `angular:packages/core/src/platform/bootstrap.ts:L149-L152` |
 | `APP_BOOTSTRAP_LISTENER` | multi `InjectionToken<(compRef) => void>` | `[]` | `angular:packages/core/src/application/application_ref.ts:L64-L66` | `angular:packages/core/src/application/application_ref.ts:L784-L794` |
-| `BootstrapOptions` (`ngZone`, `ngZoneEventCoalescing`, `ngZoneRunCoalescing`) | opzioni di `bootstrapModule` (deprecate 20.2) | — | `angular:packages/core/src/application/application_ref.ts:L93-L156` | `angular:packages/core/src/platform/platform_ref.ts:L97-L97` |
-| `NgModule.id` | `string` | `undefined` (non registrato) | `angular:packages/core/src/metadata/ng_module.ts:L189-L193` | ⚠️ DA VERIFICARE: registrazione in `getNgModuleById` non letta |
+| `BootstrapOptions` (`ngZone`, `ngZoneEventCoalescing`, `ngZoneRunCoalescing`) | opzioni di `bootstrapModule` (deprecate 20.2) | — | `angular:packages/core/src/application/application_ref.ts:L93-L156` | nessun punto: fuse da `optionsReducer` (`angular:packages/core/src/platform/platform_ref.ts:L97-L97`) e passate a `bootstrapModuleFactory`, che legge solo `applicationProviders` (`angular:packages/core/src/platform/platform_ref.ts:L51-L56`), quindi ignorate a runtime; Angular fornisce la migrazione `bootstrap-options-migration` (`angular:packages/core/schematics/migrations/bootstrap-options-migration/migration.ts:L40-L41`) |
+| `NgModule.id` | `string` | `undefined` (non registrato) | `angular:packages/core/src/metadata/ng_module.ts:L189-L193` | `registerNgModuleType` (`angular:packages/core/src/linker/ng_module_registration.ts:L46-L46`), chiamata in JIT da `angular:packages/core/src/render3/jit/module.ts:L109-L109` |
 | `Component.standalone` | `boolean` | `true` (v19+) | `angular:packages/core/src/metadata/directives.ts:L627-L630` | `angular:packages/compiler-cli/src/ngtsc/core/src/compiler.ts:L480-L482` |
 | `environment.production` (demo) | `boolean` | per environment | `projects/storefrontapp/src/environments/*` (⚠️ DA VERIFICARE: non letto) | `projects/storefrontapp/src/main.ts:L13-L15`, `projects/storefrontapp/src/app/private/private.providers.ts:L55-L55` |
 | `environment.b2b` e altri flag feature (demo) | `boolean` | per build | `projects/storefrontapp/src/environments/*` (⚠️ DA VERIFICARE: non letto) | `projects/storefrontapp/src/app/spartacus/spartacus-configuration.module.ts:L40-L42`, `projects/storefrontapp/src/app/spartacus/spartacus-features.module.ts:L117-L175` |
@@ -916,7 +916,7 @@ Per la configurazione di Spartacus vera e propria (`provideConfig`, `Config`, sc
 - `projects/storefrontapp/src/app/private/private.providers.ts:L54-L54` — `TestConfigModule.forRoot` "Should be imported after other config modules."
 - `projects/storefrontapp/src/app/app.config.server.ts:L24-L25` — "DO NOT USE IN CUSTOMERS APPS".
 - `projects/storefrontapp/src/main.server.ts:L7-L9` — commento "Load `$localize` onto the global scope" senza alcun import corrispondente nel file: commento residuo.
-- `core-libs/core/src/config/test-config.module.ts:L80-L80` — "CAUTION: DON'T USE IT IN PRODUCTION! IT HASN'T BEEN REVIEWED FOR SECURITY ISSUES."
+- `core-libs/core/src/config/test-config.module.ts:L81-L81` — "CAUTION: DON'T USE IT IN PRODUCTION! IT HASN'T BEEN REVIEWED FOR SECURITY ISSUES."
 
 ## 8. Extension point
 
@@ -951,8 +951,8 @@ Ricette correlate nella Parte III:
 1. **L'ordine dei provider non è l'ordine testuale degli `imports`.** I `providers` dei `ModuleWithProviders` sono emessi solo dopo tutti gli import fratelli, anche quelli dichiarati dopo. In `AppModule` i provider di `StoreModule.forRoot({})` finiscono **dopo** quelli dell'intero sotto-albero di `SpartacusModule` — `angular:packages/core/src/di/provider_collection.ts:L316-L321`, `projects/storefrontapp/src/app/app.module.ts:L16-L22`.
 2. **`forRoot()` senza `providers` = import del tipo.** `BaseCoreModule.forRoot()` restituisce solo `{ngModule}` e si comporta come l'import diretto; `ProcessModule.forRoot()` con `providers: []` attiva invece il ramo "rinviato", con zero provider — `angular:packages/core/src/di/provider_collection.ts:L360-L362`, `core-libs/core/src/base-core.module.ts:L48-L52`, `core-libs/core/src/process/process.module.ts:L14-L18`.
 3. **Tipo + `forRoot()` dello stesso modulo.** `OutletModule` e `OutletModule.forRoot()` in `BaseStorefrontModule` non duplicano il modulo ma aggiungono i provider del MWP (dedup solo sul tipo). Due chiamate allo stesso `forRoot()` registrerebbero due volte i provider, ad esempio due `APP_INITIALIZER` multi — `core-libs/storefront/base-storefront.module.ts:L31-L31`, `core-libs/storefront/base-storefront.module.ts:L43-L43`, `angular:packages/core/src/di/provider_collection.ts:L276-L276`, `angular:packages/core/src/di/provider_collection.ts:L360-L362`.
-4. **Nessuna guardia contro il doppio `forRoot` nei moduli Spartacus.** Una ricerca testuale nei `*.module.ts` di `core-libs` non trova `@SkipSelf()`/`skipSelf: true`, a differenza di `RouterModule` (`FOR_ROOT_CALLED_TWICE`) — `angular:packages/router/src/router_module.ts:L222-L233`. Importare `BaseStorefrontModule` due volte, ad esempio in un modulo lazy, non dà errore.
-5. **`BrowserModule` nell'`AppModule` della demo.** `bootstrapApplication` aggiunge già `BROWSER_MODULE_PROVIDERS`, ma il controllo `BROWSER_MODULE_ALREADY_LOADED` usa `skipSelf: true` e le due copie stanno nello stesso environment injector: nessun errore. Effetti: i provider di `BrowserModule` sono registrati due volte (vince la seconda copia) e si aggiungono i `TESTABILITY_PROVIDERS`, che `bootstrapApplication` di per sé non include. Lo schematic invece rimuove `BrowserModule` dalle app migrate: demo e app migrate divergono — `projects/storefrontapp/src/app/app.module.ts:L17-L17`, `angular:packages/platform-browser/src/browser.ts:L171-L171`, `angular:packages/platform-browser/src/browser.ts:L288-L288`, `angular:packages/platform-browser/src/browser.ts:L294-L297`, `core-libs/schematics/src/modernize-app-to-standalone-bootstrap-application/csr-and-ssr/update-app-module.ts:L136-L156`.
+4. **Nessuna guardia contro il doppio `forRoot` nei moduli Spartacus.** Una ricerca testuale nei `*.module.ts` di `core-libs` non trova `@SkipSelf()`/`skipSelf: true`, a differenza di `RouterModule` (`FOR_ROOT_CALLED_TWICE`) — `angular:packages/router/src/router_module.ts:L222-L233`. Importare `BaseStorefrontModule` due volte, ad esempio in un modulo lazy, non incontra alcuna guardia esplicita contro il doppio `forRoot` (⚠️ DA VERIFICARE a runtime l'assenza di altri errori: build non eseguibile).
+5. **`BrowserModule` nell'`AppModule` della demo.** `bootstrapApplication` aggiunge già `BROWSER_MODULE_PROVIDERS`, ma il controllo `BROWSER_MODULE_ALREADY_LOADED` usa `skipSelf: true` e le due copie stanno nello stesso environment injector: nessun errore. Effetti: i provider non multi di `BrowserModule` sono registrati due volte (vince la seconda copia, salvo override successivi come `ErrorHandler` → `CxErrorHandler` di `ErrorHandlingModule.forRoot()`, `core-libs/core/src/error-handling/error-handling.module.ts:L25-L28`); i multi provider `EVENT_MANAGER_PLUGINS` (`DomEventsPlugin`, `KeyEventsPlugin`, `angular:packages/platform-browser/src/browser.ts:L262-L267`) compaiono invece due volte nell'array multi: `R3Injector` fa `multiRecord.multi!.push(provider)` per ogni copia (`angular:packages/core/src/di/r3_injector.ts:L497-L521`). Poiché le due copie sono lo stesso oggetto provider e il record è indicizzato per oggetto provider, entrambe le voci risolvono allo stesso record: la stessa istanza di ciascun plugin appare due volte nell'array (`angular:packages/core/src/di/r3_injector.ts:L508-L521`, `angular:packages/core/src/di/injector_compatibility.ts:L327-L330`). Inoltre si aggiungono i `TESTABILITY_PROVIDERS`, che `bootstrapApplication` di per sé non include. Lo schematic invece rimuove `BrowserModule` dalle app migrate: demo e app migrate divergono — `projects/storefrontapp/src/app/app.module.ts:L17-L17`, `angular:packages/platform-browser/src/browser.ts:L171-L171`, `angular:packages/platform-browser/src/browser.ts:L288-L288`, `angular:packages/platform-browser/src/browser.ts:L294-L297`, `core-libs/schematics/src/modernize-app-to-standalone-bootstrap-application/csr-and-ssr/update-app-module.ts:L136-L156`.
 6. **Zoneless di default.** In Angular 21 `bootstrapApplication` è zoneless (`NoopNgZone`); demo e schematic aggiungono `provideZoneChangeDetection({eventCoalescing: true})`, che vince perché arriva dopo nella lista. Toglierlo cambia il modello di change detection dell'intera app — `angular:packages/core/src/application/create_application.ts:L66-L71`, `projects/storefrontapp/src/app/app.config.ts:L30-L30`, `core-libs/schematics/src/modernize-app-to-standalone-bootstrap-application/csr-and-ssr/create-app-config.ts:L46-L46`. Vedi [04](04-change-detection-zone-signals.md).
 7. **`importProvidersFrom` ha due limiti.** Non accetta componenti standalone (errore in dev) e il risultato non può stare in `@Component.providers` (`PROVIDER_IN_WRONG_CONTEXT`) — `angular:packages/core/src/di/provider_collection.ts:L163-L174`, `angular:packages/core/src/render3/errors_di.ts:L50-L55`.
 8. **L'appiattimento avviene all'import di `app.config.ts`.** `importProvidersFrom(AppModule)` è valutato con il modulo ES, non dentro `bootstrapApplication`: errori di grafo (cicli, provider invalidi in dev) emergono già all'import del file, fuori dal `.catch` di `main.ts` — derivato da `projects/storefrontapp/src/app/app.config.ts:L26-L35` e `angular:packages/core/src/di/provider_collection.ts:L144-L149`. ⚠️ DA VERIFICARE a runtime se, in un bundle ESM, l'eccezione arrivi davvero prima della chiamata a `bootstrapApplication` (dipende dall'ordine di valutazione dei moduli prodotto dal builder).
@@ -1021,4 +1021,4 @@ Ricette correlate nella Parte III:
    No: è registrato in `collection.json`, non in `migrations.json`, quindi va lanciato esplicitamente — `core-libs/schematics/src/collection.json:L49-L52`.
 
 10. **Perché l'`AppModule` della demo può importare `BrowserModule` nonostante il bootstrap standalone, senza `BROWSER_MODULE_ALREADY_LOADED`?**
-    Il controllo cerca il marker con `skipSelf: true`, cioè solo negli injector antenati; qui le due copie dei provider stanno nello stesso environment injector, quindi l'errore non scatta (ma i provider sono duplicati) — `angular:packages/platform-browser/src/browser.ts:L292-L307`, `angular:packages/platform-browser/src/browser.ts:L171-L171`, `projects/storefrontapp/src/app/app.module.ts:L17-L17`.
+    Il controllo cerca il marker con `skipSelf: true`, cioè solo negli injector antenati; qui le due copie dei provider stanno nello stesso environment injector, quindi l'errore non scatta (ma i provider sono duplicati: per i non multi vince l'ultima copia, i multi `EVENT_MANAGER_PLUGINS` compaiono due volte nell'array, cfr. §9 T5) — `angular:packages/platform-browser/src/browser.ts:L292-L307`, `angular:packages/platform-browser/src/browser.ts:L171-L171`, `projects/storefrontapp/src/app/app.module.ts:L17-L17`.

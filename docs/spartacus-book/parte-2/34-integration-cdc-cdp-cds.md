@@ -149,6 +149,21 @@ Entry point secondari: `@spartacus/cdc` (lazy), `/root` (eager), `/core`, `/comp
 | `projects/storefrontapp/src/app/spartacus/features/organization/administration-wrapper.module.ts` | `CdcAdministrationModule` dopo `AdministrationModule` |
 | `projects/storefrontapp/src/app/spartacus/features/customer-ticketing/customer-ticketing-wrapper.module.ts` | `CdpCustomerTicketingModule` nel wrapper lazy |
 
+### File aggiuntivi
+
+| Path | Ruolo |
+|---|---|
+| `integration-libs/cdc/schematics/add-cdc/index.ts` | rule `ng add` di `@spartacus/cdc` (`addCdcFeature`) |
+| `integration-libs/cdc/schematics/add-cdc/index_spec.ts` | test Jest dello schematic CDC: B2C e B2B, validazione di `javascriptUrl`, lazy/eager |
+| `integration-libs/cdc/vitest.config.ts` | configurazione Vitest di cdc (`restoreMocks: true`, coverage solo `lcov`) |
+| `integration-libs/cdp/schematics/add-cdp/index.ts` | rule `ng add` di `@spartacus/cdp` (`addCdpFeature`) |
+| `integration-libs/cdp/schematics/add-cdp/index_spec.ts` | test Jest dello schematic CDP (richiede prima customer ticketing) |
+| `integration-libs/cdp/vitest.config.ts` | configurazione Vitest di cdp |
+| `integration-libs/cds/vitest.config.ts` | configurazione Vitest di cds (soglie 80%) |
+| `integration-libs/segment-refs/schematics/add-segment-refs/index.ts` | rule `ng add` di `@spartacus/segment-refs` (`addSegmentRefsFeature`) |
+| `integration-libs/segment-refs/schematics/add-segment-refs/index_spec.ts` | test Jest dello schematic segment-refs (richiede prima personalization) |
+| `integration-libs/segment-refs/vitest.config.ts` | configurazione Vitest di segment-refs (soglie 90/90/75/90) |
+
 ## 3. Come funziona passo per passo
 
 ### 3.1 CDC: struttura root/lazy
@@ -315,6 +330,12 @@ Lo schematic installa `CdcRootModule` eager, usa `CDC_FEATURE` come chunk lazy e
 3. Nel costruttore l'interceptor legge `?segmentrefs=` da `winRef.location.href` e lo salva in localStorage (`segment-refs`), oppure lo rilegge; in browser calcola il nome dell'header in minuscolo — `integration-libs/segment-refs/root/http-interceptors/occ-segment-refs.interceptor.ts:L39-L60`.
 4. `intercept` aggiunge l'header solo in browser, con header e valore presenti, per URL OCC — `integration-libs/segment-refs/root/http-interceptors/occ-segment-refs.interceptor.ts:L69-L86`.
 5. Lo schematic aggiunge la dipendenza da personalization perché "backend occ api of Segment-refs requires Personalization to be enabled" — `core-libs/schematics/src/shared/lib-configs/integration-libs/segment-refs-schematics-config.ts:L36-L39`.
+
+### 3.17 Schematic di installazione e configurazione dei test
+
+`addCdcFeature`, `addCdpFeature` e `addSegmentRefsFeature` eseguono tutte `validateSpartacusInstallation`, `analyzeCrossFeatureDependencies` e poi `chain([analyzeApplication, addFeatures, addPackageJsonDependenciesForLibrary(peerDependencies), finalizeInstallation])` (`integration-libs/cdc/schematics/add-cdc/index.ts:L25-L43`, `integration-libs/cdp/schematics/add-cdp/index.ts:L25-L43`, `integration-libs/segment-refs/schematics/add-segment-refs/index.ts:L25-L45`); la logica specifica (moduli, `importAfter`, config generata) è nelle `*-schematics-config.ts` della sezione 2.4. Gli spec preparano prima la feature da cui dipendono: CDC installa User-Account e User-Profile e verifica che l'opzione `javascriptUrl` finisca nel feature module (`integration-libs/cdc/schematics/add-cdc/index_spec.ts:L82-L104`); CDP installa prima customer ticketing (`integration-libs/cdp/schematics/add-cdp/index_spec.ts:L56-L73`); segment-refs installa prima personalization (`integration-libs/segment-refs/schematics/add-segment-refs/index_spec.ts:L56-L73`).
+
+Le configurazioni Vitest differiscono: `integration-libs/cdc/vitest.config.ts` ha un solo alias (feature toggles testing) e `restoreMocks: true` (`integration-libs/cdc/vitest.config.ts:L14-L25`); `integration-libs/cds/vitest.config.ts` abbassa le soglie a 80/80/65/80 (`integration-libs/cds/vitest.config.ts:L34-L39`); `integration-libs/segment-refs/vitest.config.ts` le alza a 90/90/75/90 (`integration-libs/segment-refs/vitest.config.ts:L41-L46`); `integration-libs/cdp/vitest.config.ts` non dichiara alias (`integration-libs/cdp/vitest.config.ts:L13-L25`).
 
 ## 4. Diagrammi
 
@@ -1122,6 +1143,8 @@ Cosa **non** è API pubblica (e quindi a rischio negli upgrade, vedi [54 — API
 30. **segment-refs in SSR.** L'interceptor legge `winRef.location.href` nel costruttore; in SSR senza `SERVER_REQUEST_URL` `WindowRef.location` lancia un errore — `integration-libs/segment-refs/root/http-interceptors/occ-segment-refs.interceptor.ts:L39-L42`, `core-libs/core/src/window/window-ref.ts:L70-L82`. Inoltre `SegmentRefsConfig` non è esportato: la config va scritta senza tipo — `integration-libs/segment-refs/root/public_api.ts:L7-L7`.
 31. **Doppio sistema di login con ASM.** `loginWithToken` rifiuta il login cliente se un agente CS è già loggato — `integration-libs/cdc/core/auth/facade/cdc-auth.service.ts:L68-L104`; vedi [29 — ASM](../parte-2/29-asm.md).
 32. **Consensi senza lista CDC persistita → `TypeError`.** Se `cdc-consents-list` non è mai stata scritta (script Gigya non caricato, trappola 5, o callback di `getSiteConsentDetails(true)` non ancora arrivato), `readStateFromStorage` ritorna `undefined` e `checkIfConsentExists` chiama `undefined.forEach`: `giveConsent` e `withdrawConsent` lanciano `TypeError` senza chiamare né OCC né CDC — `integration-libs/cdc/root/consent-management/services/cdc-consents-local-storage.service.ts:L57-L76`, `core-libs/core/src/state/utils/browser-storage.ts:L65-L68`, `integration-libs/cdc/root/consent-management/cdc-user-consent.adapter.ts:L67-L75`.
+33. **Coverage non abilitata di default in cdc, cdp, cds.** Il blocco `coverage` di queste tre librerie non contiene `enabled: true`, presente invece in segment-refs e nelle feature lib (es. `feature-libs/product/vitest.config.ts:L33-L34`), e ha il solo reporter `lcov` — `integration-libs/cdc/vitest.config.ts:L30-L39`, `integration-libs/cdp/vitest.config.ts:L26-L35`, `integration-libs/cds/vitest.config.ts:L24-L33`. ⚠️ DA VERIFICARE: che le soglie vengano applicate solo con `--coverage` dipende dal default di Vitest, non verificabile senza `node_modules`.
+34. **Exclude verso un file inesistente.** cdc, cdp e segment-refs escludono dalla coverage `../../testing/setup-test.ts`, ma il setup effettivo è `testing/setup-vitest.ts` (unico file di setup presente in `testing/` insieme a `testing/patch-object-define-property.ts`) — `integration-libs/cdc/vitest.config.ts:L25-L25`, `integration-libs/cdc/vitest.config.ts:L38-L38`, `integration-libs/cdp/vitest.config.ts:L34-L34`, `integration-libs/segment-refs/vitest.config.ts:L38-L38`.
 
 ## 10. Come fare debug
 

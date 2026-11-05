@@ -76,6 +76,15 @@ Prerequisiti utili: il caricamento lazy dei feature CMS ([cap. 12](../parte-2/12
 | `core-libs/core/src/cost-center/connectors/cost-center/converters.ts` | token converter cost center in `@spartacus/core` |
 | `projects/storefrontapp/src/app/spartacus/features/organization/organization-administration-feature.module.ts` | wiring nella demo app |
 
+### File aggiuntivi
+
+| Path | Ruolo |
+|---|---|
+| `feature-libs/organization/_index.scss` | entry SCSS: mixin `visible-focus` e import degli stili delle cinque sotto-feature |
+| `feature-libs/organization/schematics/add-organization/index.ts` | rule `ng add` di `@spartacus/organization` (`addSpartacusOrganization`) |
+| `feature-libs/organization/schematics/add-organization/index_spec.ts` | test Jest dello schematic per le cinque feature (administration, order approval, account summary, user registration, unit order) |
+| `feature-libs/organization/vitest.config.ts` | configurazione Vitest: molti alias verso helper di test di core/storefront, `maxWorkers: 4`, soglie coverage |
+
 ## 3. Come funziona passo per passo
 
 ### 3.1 Wiring: root eager, feature lazy
@@ -276,6 +285,10 @@ Il download degli allegati usa `responseType: 'blob'`. Per questo `BlobErrorInte
 **Unit order.** Il root dichiara 4 CMS component lazy e due route `path: null`. Quella di dettaglio ha un `cxContext` `ORDER_ENTRIES_CONTEXT` — `feature-libs/organization/unit-order/root/unit-order-root.module.ts:L23-L82`. `UnitOrderFacade` usa `facadeFactory` con `async: true` — `feature-libs/organization/unit-order/root/facade/unit-order.facade.ts:L13-L33`. Con `async` il resolver aggiunge un `delay(0)`, "required to make lazy NgRx store feature ready" — `core-libs/core/src/lazy-loading/facade-factory/facade-descriptor.ts:L32-L36`, `core-libs/core/src/lazy-loading/facade-factory/facade-factory.service.ts:L38-L57`. Lo stato è la feature NgRx `'unit order'` (con uno spazio nel nome) — `feature-libs/organization/unit-order/core/store/unit-order-state.ts:L10-L21`. `UnitLevelOrdersViewerGuard` ammette `unitorderviewergroup` o `b2badmingroup` — `feature-libs/organization/unit-order/core/guards/unit-level-orders-viewer.guard.ts:L30-L54`.
 
 **User registration.** Il root dichiara solo 3 CMS component lazy, senza routing config — `feature-libs/organization/user-registration/root/user-registration-root.module.ts:L11-L34`. `UserRegistrationService` implementa la facade con un `Command` — `feature-libs/organization/user-registration/core/facade/user-registration.service.ts:L16-L41`. L'adapter fa POST su `/orgUsers` con l'header `USE_CLIENT_TOKEN` — `feature-libs/organization/user-registration/occ/adapters/occ-user-registration.adapter.ts:L37-L57`. Per il client token vedi il [cap. 22](../parte-2/22-auth.md). I dati aziendali non vengono inviati come campi strutturati: finiscono nel `message` tramite la chiave i18n `userRegistrationForm.messageToApproverTemplate` — `feature-libs/organization/user-registration/components/form/user-registration-form.service.ts:L144-L200`. Dopo l'invio si reindirizza al login solo con `ResourceOwnerPasswordFlow` o con il toggle `authorizationCodeFlowByDefault` — `feature-libs/organization/user-registration/components/form/user-registration-form.service.ts:L177-L206`. I componenti sono protetti da `NotAuthGuard` — `feature-libs/organization/user-registration/components/verification-token-form/verification-token-form.module.ts:L51-L70`. Un `HttpErrorHandler` dedicato gestisce i 409 — `feature-libs/organization/user-registration/core/user-registration-core.module.ts:L14-L28`.
+
+### 3.15 Stili, schematic e test
+
+`feature-libs/organization/_index.scss` definisce il mixin `visible-focus` e importa gli stili di administration, order-approval, user-registration, account-summary e unit-order (`feature-libs/organization/_index.scss:L3-L15`). Lo schematic `addSpartacusOrganization` segue la sequenza standard `analyzeApplication` → `addFeatures` → `addPackageJsonDependenciesForLibrary` → `finalizeInstallation` (`feature-libs/organization/schematics/add-organization/index.ts:L25-L45`); lo spec ha un blocco per ciascuna delle cinque feature (`feature-libs/organization/schematics/add-organization/index_spec.ts:L126-L459`) e per administration verifica con snapshot anche il modulo di configurazione B2B generato (`feature-libs/organization/schematics/add-organization/index_spec.ts:L162-L170`). `feature-libs/organization/vitest.config.ts` mappa numerosi path `core-libs/...` di helper di test (pagination, split view, url pipe, mock translation) sui sorgenti (`feature-libs/organization/vitest.config.ts:L16-L34`) e limita il pool a `maxWorkers: 4` (`feature-libs/organization/vitest.config.ts:L37-L37`).
 
 ## 4. Diagrammi
 

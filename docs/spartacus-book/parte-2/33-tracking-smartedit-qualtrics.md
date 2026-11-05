@@ -107,6 +107,16 @@ Tutte e tre seguono la convenzione root/lazy di Spartacus spiegata in [12 — Fe
 | `projects/storefrontapp/src/app/spartacus/features/smartedit/smartedit-feature.module.ts` | configurazione demo SmartEdit |
 | `projects/storefrontapp/src/app/spartacus/features/qualtrics/qualtrics-feature.module.ts` | configurazione demo Qualtrics |
 
+### File aggiuntivi
+
+| Path | Ruolo |
+|---|---|
+| `feature-libs/qualtrics/_index.scss` | entry SCSS: importa `@spartacus/styles/scss/core` e `./styles/index` |
+| `feature-libs/qualtrics/public_api.ts` | entry point primario `@spartacus/qualtrics`: riesporta `qualtrics.module` |
+| `feature-libs/qualtrics/vitest.config.ts` | configurazione Vitest di qualtrics (jsdom, coverage v8, nessun alias) |
+| `feature-libs/smartedit/public_api.ts` | entry point primario `@spartacus/smartedit`: riesporta `smart-edit.module` |
+| `feature-libs/smartedit/vitest.config.ts` | configurazione Vitest di smartedit (alias verso `mock-window-ref`) |
+
 ## 3. Come funziona passo per passo
 
 ### 3.1 TMS: dalla configurazione all'avvio

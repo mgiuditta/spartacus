@@ -62,6 +62,19 @@ Capitoli collegati: lo state management generico (loader/entity/scoped) è nel [
 | `feature-libs/product/image-zoom/**` | sostituzione di `ProductImagesComponent` con zoom |
 | `feature-libs/product-multi-dimensional/**` | selector multi-dimensionale e range prezzo in lista |
 
+### File aggiuntivi
+
+| Path | Ruolo |
+|---|---|
+| `feature-libs/product-multi-dimensional/_index.scss` | entry SCSS: importa solo gli stili di `selector` |
+| `feature-libs/product-multi-dimensional/public_api.ts` | entry point primario: riesporta il solo `product-multi-dimensional-selector.module` |
+| `feature-libs/product-multi-dimensional/schematics/add-product-multi-dimensional/index.ts` | rule `ng add` (`addSpartacusProductMultiDimensional`) |
+| `feature-libs/product-multi-dimensional/schematics/add-product-multi-dimensional/index_spec.ts` | test Jest dello schematic: feature selector e list, lazy/eager, snapshot |
+| `feature-libs/product/_index.scss` | entry SCSS: mixin `visible-focus`/`button-reset` e import di bulk-pricing, variants, image-zoom, future-stock |
+| `feature-libs/product/schematics/add-product/index.ts` | rule `ng add` di `@spartacus/product` (`addSpartacusProduct`) |
+| `feature-libs/product/schematics/add-product/index_spec.ts` | test Jest dello schematic: BulkPricing, Variants, ImageZoom, FutureStock, config B2B |
+| `feature-libs/product/vitest.config.ts` | configurazione Vitest della lib `product`: alias per helper di test, coverage v8 con soglie |
+
 ## 3. Come funziona passo per passo
 
 ### 3.1 Wiring: store, effects, SSR
@@ -239,6 +252,14 @@ L'entry point principale esporta `{}`: tutto è nelle entry secondarie (`feature
 ### 3.19 `@spartacus/product-multi-dimensional`
 
 Il root del selector fornisce `multiDimensional.imageFormat = STYLE_SWATCH` e dichiara la feature `productMultiDimensionalSelector` (`feature-libs/product-multi-dimensional/selector/root/product-multi-dimensional-selector-root.module.ts:L15-L33`). L'OCC aggiunge gli scope `multi_dimensional` (variantMatrix annidata) e `multi_dimensional_availability` (`feature-libs/product-multi-dimensional/selector/occ/config/default-occ-product-multi-dimensional-selector-config.ts:L9-L26`). Il guard, senza `productCode`, consente l'accesso solo con `cmsTicketId` (SmartEdit), altrimenti verifica la disponibilità e reindirizza (`feature-libs/product-multi-dimensional/selector/components/guards/product-multi-dimensional-selector.guard.ts:L39-L61`). `getVariants` scende un livello della matrice per ogni categoria (`feature-libs/product-multi-dimensional/selector/core/services/product-multi-dimensional-selector.service.ts:L51-L88`). La parte `list` sostituisce (`REPLACE`) l'outlet `ITEM_DETAILS` con un range di prezzo (`feature-libs/product-multi-dimensional/list/root/product-multi-dimensional-list-root.module.ts:L33-L44`).
+
+### 3.20 Stili, schematics e test delle due librerie
+
+`feature-libs/product/_index.scss` definisce due mixin locali, `visible-focus` (outline con `--cx-color-visual-focus`) e `button-reset`, prima di importare gli stili delle quattro sotto-feature (`feature-libs/product/_index.scss:L3-L30`); `feature-libs/product-multi-dimensional/_index.scss` importa solo `./selector/index` (`feature-libs/product-multi-dimensional/_index.scss:L3-L3`) e l'entry point primario della lib multi-dimensionale riesporta il solo modulo del selector (`feature-libs/product-multi-dimensional/public_api.ts:L7-L7`).
+
+I due schematic hanno la stessa sequenza `validateSpartacusInstallation` → `analyzeCrossFeatureDependencies` → `chain([analyzeApplication, addFeatures, addPackageJsonDependenciesForLibrary, finalizeInstallation])` (`feature-libs/product/schematics/add-product/index.ts:L25-L43`, `feature-libs/product-multi-dimensional/schematics/add-product-multi-dimensional/index.ts:L25-L45`). Lo spec di product, per BulkPricing, controlla anche via snapshot il modulo di configurazione generato (`feature-libs/product/schematics/add-product/index_spec.ts:L133-L140`); lo spec multi-dimensionale crea il `SchematicTestRunner` con il nome di collection `SPARTACUS_PRODUCT` (`feature-libs/product-multi-dimensional/schematics/add-product-multi-dimensional/index_spec.ts:L23-L27`) e copre le feature selector e list (`feature-libs/product-multi-dimensional/schematics/add-product-multi-dimensional/index_spec.ts:L89-L175`).
+
+`feature-libs/product/vitest.config.ts` dichiara alias verso helper di test di core/storefront (`feature-libs/product/vitest.config.ts:L16-L22`), esclude dalla coverage spec, `public_api.ts`, `index.ts`, `*.module.ts`, `schematics/**` e simili (`feature-libs/product/vitest.config.ts:L39-L50`) e fissa le soglie 85/85/65/85 (`feature-libs/product/vitest.config.ts:L51-L56`).
 
 ## 4. Diagrammi
 

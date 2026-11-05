@@ -78,6 +78,14 @@ Un'ultima nota di orientamento: `UserIdService`, che tutte le facade usano per s
 | `core-libs/storefront/cms-components/myaccount/consent-management/components/consent-management.component.ts` | pagina consensi My Account |
 | `feature-libs/user/wishlist/occ/adapters/occ-user-wishlist.adapter.ts` | adapter OCC wishlist (senza NgModule proprio) |
 
+### File aggiuntivi
+
+| Path | Ruolo |
+|---|---|
+| `feature-libs/user/_index.scss` | entry SCSS della lib: importa gli stili di account/profile, applica i placeholder `%cx-*` ai selettori (salvo `$skipComponentStyles`) e definisce `.user-form` |
+| `feature-libs/user/schematics/add-user/index.ts` | rule `ng add` di `@spartacus/user` (`addUserFeatures`) |
+| `feature-libs/user/schematics/add-user/index_spec.ts` | test Jest dello schematic: senza feature, User-Account, User-Profile, lazy/eager, snapshot di feature module, `user.scss` e `angular.json` |
+
 ## 3. Come funziona passo per passo
 
 ### 3.1 Wiring all'avvio
@@ -177,6 +185,12 @@ Ogni area ha un connector `providedIn: 'root'` che delega a un adapter astratto 
 - La pagina consensi carica i consensi se mancano, nasconde i template anonimi se `showAnonymousConsents` è false o quelli in `hideConsents` — `core-libs/storefront/cms-components/myaccount/consent-management/components/consent-management.component.ts:L127-L192`; dà consenso con `template.id` + `version`, lo ritira con `currentConsent.code` + `template.id` — `core-libs/storefront/cms-components/myaccount/consent-management/components/consent-management.component.ts:L230-L245`; dopo un withdraw riuscito ricarica — `core-libs/storefront/cms-components/myaccount/consent-management/components/consent-management.component.ts:L203-L222`.
 - Coupon: rotta `couponClaim` con `AuthGuard` + `CmsPageGuard` — `core-libs/storefront/cms-components/myaccount/my-coupons/my-coupons.module.ts:L48-L81`; `CouponClaimComponent` legge `couponCode` dai parametri e fa il claim — `core-libs/storefront/cms-components/myaccount/my-coupons/coupon-claim/coupon-claim.component.ts:L29-L52`.
 - Notifiche e metodi di pagamento chiamano le facade core in `ngOnInit` — `core-libs/storefront/cms-components/myaccount/notification-preference/notification-preference.component.ts:L42-L47`, `core-libs/storefront/cms-components/myaccount/payment-methods/payment-methods.component.ts:L52-L67`.
+
+### 3.9 Stili e schematic della libreria
+
+`feature-libs/user/_index.scss` importa gli stili di `account` e `profile`, poi per ogni selettore della lista `$selectors` (login, register, address book, OTP, my-account-v2…) fa `@extend %<selettore>` e `%<selettore>__body` sul `body`, saltando quelli elencati in `$skipComponentStyles` (`feature-libs/user/_index.scss:L3-L32`); definisce inoltre la classe globale `.user-form`, un layout flex che da `md` in su occupa il 50% e rende `form`/`fieldset` `display: contents` (`feature-libs/user/_index.scss:L34-L71`).
+
+Lo schematic `addUserFeatures` valida l'installazione di Spartacus, calcola le feature con `analyzeCrossFeatureDependencies` e concatena `analyzeApplication`, `addFeatures`, `addPackageJsonDependenciesForLibrary(peerDependencies)` e `finalizeInstallation` (`feature-libs/user/schematics/add-user/index.ts:L25-L43`). Il suo spec verifica che senza feature non venga creato il feature module ma siano installate le `peerDependencies` (saltando `SPARTACUS_SCHEMATICS`, aggiunta solo dalla Angular CLI) (`feature-libs/user/schematics/add-user/index_spec.ts:L46-L84`), e confronta con snapshot il feature module lazy/eager, `src/styles/spartacus/user.scss` e `angular.json` per User-Account e User-Profile (`feature-libs/user/schematics/add-user/index_spec.ts:L86-L181`). Gli schematics in generale sono nel [capitolo 43](../parte-2/43-schematics-migrazioni.md).
 
 ## 4. Diagrammi
 

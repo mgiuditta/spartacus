@@ -70,6 +70,12 @@ Infine `core-libs/core/src/checkout` è quasi vuoto: contiene solo i token conve
 | `projects/storefrontapp/src/app/spartacus/features/checkout/checkout-feature.module.ts` | Integrazione nell'app demo (`:L41-L103`). |
 | `projects/storefrontapp/src/app/spartacus/features/checkout/checkout-wrapper.module.ts` | Chunk lazy che aggrega base + estensioni (`:L18-L33`). |
 
+### File aggiuntivi
+
+| Path | Ruolo |
+|---|---|
+| `feature-libs/checkout/_index.scss` | entry SCSS della lib: importa `@spartacus/styles/scss/core` e gli stili di `base`, `b2b`, `scheduled-replenishment` |
+
 ## 3. Come funziona passo per passo
 
 ### 3.1 Bootstrap: root module eager, tutto il resto lazy

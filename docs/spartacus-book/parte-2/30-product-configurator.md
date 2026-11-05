@@ -60,6 +60,13 @@ Tutti i path sono relativi a `feature-libs/product-configurator/` salvo dove ind
 | `textfield/*` | entry `textfield`: root, core (store a singola configurazione), occ, 4 componenti |
 | `projects/storefrontapp/src/app/spartacus/features/product-configurator/*.ts` | wiring nella demo app |
 
+### File aggiuntivi
+
+| Path | Ruolo |
+|---|---|
+| `feature-libs/product-configurator/_index.scss` | entry SCSS: importa gli stili di `common`, `rulebased`, `textfield` |
+| `feature-libs/product-configurator/vitest.config.ts` | configurazione Vitest: forza `NX_TSCONFIG_PATH` su `tsconfig.spec.json`, alias helper di test, esclude `textfield/root/**` dalla coverage |
+
 ## 3. Come funziona passo per passo
 
 ### 3.1 Packaging e wiring: entry point, root eager, feature lazy
@@ -868,6 +875,7 @@ Limiti dell'estendibilità:
 18. **Textfield: incoerenze.** `UpdateConfiguration` è un `LoaderLoadAction` senza success, quindi `loading` resta true dopo un update locale — `feature-libs/product-configurator/textfield/core/state/actions/configurator-textfield.action.ts:L71-L76`; `readConfigurationForCartEntry` dispatcha a ogni emissione di `requireLoadedCart()` — `feature-libs/product-configurator/textfield/core/facade/configurator-textfield.service.ts:L180-L201`; la lettura order entry usa sempre `OCC_USER_ID_CURRENT` e l'endpoint ordine anche per le quote — `:L228-L234`, `feature-libs/product-configurator/textfield/occ/occ-configurator-textfield.adapter.ts:L108-L120`; il bottone ha `routerLink` al carrello **e** `(click)`, quindi naviga senza attendere l'add-to-cart — `feature-libs/product-configurator/textfield/components/add-to-cart-button/configurator-textfield-add-to-cart-button.component.html:L1-L5`.
 19. **Verbi HTTP diversi.** Update cart entry: VC = PUT, textfield = POST — `feature-libs/product-configurator/rulebased/occ/variant/variant-configurator-occ.adapter.ts:L239-L241`, `feature-libs/product-configurator/textfield/occ/occ-configurator-textfield.adapter.ts:L154-L156`.
 20. **Codice CPQ non usato.** `getCpqAccessData`, `getConfigIdForCartEntry`, `getConfigIdForOrderEntry` non sono usati altrove nel repo — `feature-libs/product-configurator/rulebased/cpq/occ/default-occ-configurator-cpq-config.ts:L14-L14`, `feature-libs/product-configurator/rulebased/cpq/occ/cpq-configurator-occ.service.ts:L82-L122`.
+21. **Test e `dist/`.** `feature-libs/product-configurator/vitest.config.ts` imposta `process.env['NX_TSCONFIG_PATH']` su `tsconfig.spec.json` prima di `defineConfig`: il commento spiega che altrimenti `nxViteTsPaths` userebbe `tsconfig.lib.json`, che mappa `@spartacus/*` su `dist/`, e dopo una build codice di libreria e helper di test avrebbero copie separate degli injection token (es. `FeatureToggles`) — `feature-libs/product-configurator/vitest.config.ts:L13-L16`. La coverage esclude inoltre `textfield/root/**` — `feature-libs/product-configurator/vitest.config.ts:L47-L59`.
 
 ## 10. Come fare debug
 

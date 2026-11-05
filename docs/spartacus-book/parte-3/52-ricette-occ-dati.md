@@ -251,7 +251,6 @@ import { Observable } from 'rxjs';
 import {
   Converter,
   ConverterService,
-  Occ,
   OccConfig,
   OccEndpoint,
   OccEndpointsService,
@@ -262,6 +261,12 @@ import {
 export interface LoyaltyBalance {
   points: number;
   tier?: string;
+}
+
+// 1b. Risposta OCC grezza dell'endpoint custom (DTO dedicato)
+export interface OccLoyaltyBalance {
+  loyaltyPoints?: number;
+  loyaltyTier?: string;
 }
 
 // 2. Endpoint: augmentation di OccEndpoints (tipizza la config)
@@ -299,7 +304,7 @@ export class OccLoyaltyAdapter implements LoyaltyAdapter {
 
   loadBalance(userId: string): Observable<LoyaltyBalance> {
     return this.http
-      .get<Occ.User>(this.getBalanceEndpoint(userId))
+      .get<OccLoyaltyBalance>(this.getBalanceEndpoint(userId))
       .pipe(this.converter.pipeable(LOYALTY_BALANCE_NORMALIZER));
   }
 
@@ -436,7 +441,7 @@ export class EnergyLabelModule {}
 
 #### Limiti e trappole
 
-- **`multi: true` dimenticato**: non sostituisce la catena "in silenzio". Nello stesso injector Angular lancia l'errore di provider misti in dev mode; tra injector diversi `getMulti` lancia `Multi-providers mixed with single providers` (`angular:packages/core/src/di/r3_injector.ts:L500-L505`, `core-libs/core/src/lazy-loading/unified-injector.ts:L84-L88`). La skill di sviluppo nel repo afferma il contrario (`core-libs/skills/skills/spartacus-developer/references/normalizers.md:L5-L7`): fa fede il codice.
+- **`multi: true` dimenticato**: non sostituisce la catena "in silenzio". Nello stesso injector Angular lancia l'errore di provider misti in dev mode, sia per un multi dopo un singolo sia per un singolo dopo i multi (il caso tipico di questa ricetta); tra injector diversi `getMulti` lancia `Multi-providers mixed with single providers` (`angular:packages/core/src/di/r3_injector.ts:L500-L505`, `angular:packages/core/src/di/r3_injector.ts:L513-L519`, `core-libs/core/src/lazy-loading/unified-injector.ts:L84-L88`). La skill di sviluppo nel repo afferma il contrario (`core-libs/skills/skills/spartacus-developer/references/normalizers.md:L5-L7`): fa fede il codice.
 - **Default param sul target**: un `convert(source, target: Product = {})` in prima posizione perderebbe tutti i campi della sorgente (`core-libs/core/src/util/converter.service.ts:L134-L136`).
 - **Prodotti parziali**: dentro carrello/ordini il prodotto arriva con i `fields` di quegli endpoint; il normalizer deve tollerare campi assenti (`feature-libs/cart/base/occ/adapters/converters/occ-cart-normalizer.ts:L31-L39`).
 - **Campi non tipizzati di `Occ.*`**: il namespace `Occ` non è nel blocco AUGMENTABLE_TYPES; gli esempi reali leggono i campi extra con `(source as any).campo` (`integration-libs/opf/gift-card/root/normalizers/opf-gift-card-cart-occ-normalizer.ts:L26-L26`, `core-libs/core/public_api.ts:L38-L58`).
@@ -470,6 +475,8 @@ export class RestrictedItemsCartNormalizer implements Converter<Occ.Cart, Cart> 
   convert(source: Occ.Cart, target?: Cart): Cart {
     // Registrato dopo CartBaseModule: target è l'output di OccCartNormalizer
     target ??= { ...(source as any) } as Cart;
+    // `restricted` va aggiunto al `product(...)` delle entry nei `fields`
+    // di `carts` e `cart` (vedi 3.7), altrimenti il risultato è sempre false
     target.hasRestrictedItems = (target.entries ?? []).some(
       (entry) => (entry.product as any)?.restricted === true
     );
@@ -507,7 +514,7 @@ export class CartBaseWrapperModule {}
 
 #### Limiti e trappole
 
-- **Root vs lazy**: un normalizer di `CART_NORMALIZER` registrato nella root gira **prima** di `OccCartNormalizer`, riceve `target` `undefined` e non vede il suo output. È il caso reale di `OpfGiftCardCartOccNormalizer`, registrato in `OpfGiftCardRootModule` (eager), che infatti lavora solo sui campi raw `sapGiftCards`/`sapGiftCardSummary` (`integration-libs/opf/gift-card/root/opf-gift-card-root.module.ts:L46-L56`, `integration-libs/opf/gift-card/root/normalizers/opf-gift-card-cart-occ-normalizer.ts:L18-L54`).
+- **Root vs lazy**: un normalizer di `CART_NORMALIZER` registrato nella root gira **prima** di `OccCartNormalizer`, riceve `target` `undefined` e non vede il suo output. È il caso reale di `OpfGiftCardCartOccNormalizer`, registrato in `OpfGiftCardRootModule` (eager), che infatti lavora solo sui campi raw `sapGiftCards`, `sapGiftCardSummary` e `_availableOperations` (`integration-libs/opf/gift-card/root/normalizers/opf-gift-card-cart-occ-normalizer.ts:L39-L42`, `integration-libs/opf/gift-card/root/opf-gift-card-root.module.ts:L46-L56`, `integration-libs/opf/gift-card/root/normalizers/opf-gift-card-cart-occ-normalizer.ts:L18-L54`).
 - **Più moduli lazy sullo stesso token**: l'ordine dipende dall'ordine di caricamento dei moduli (`core-libs/core/src/lazy-loading/lazy-modules.service.ts:L47-L55`). ⚠️ DA VERIFICARE caso per caso.
 - Il normalizer custom vale per tutte le conversioni `CART_NORMALIZER`, sia `pipeable` sia `pipeableMany` della lista `carts` (`feature-libs/cart/base/occ/adapters/occ-cart.adapter.ts:L35-L44`).
 
@@ -515,7 +522,7 @@ export class CartBaseWrapperModule {}
 
 #### Quando usarlo
 
-Quando il body inviato al backend deve avere una forma diversa dal modello UI: rinominare campi, rimuovere campi che il backend rifiuta, aggiungere default. I token `*_SERIALIZER` sono applicati dall'adapter **prima** della `POST`/`PUT`.
+Quando il body inviato al backend deve avere una forma diversa dal modello UI: rinominare campi, rimuovere campi che il backend rifiuta, aggiungere default. I token `*_SERIALIZER` sono applicati dall'adapter **prima** dell'invio (`POST`/`PATCH` nel caso degli indirizzi: `core-libs/core/src/occ/adapters/user/occ-user-address.adapter.ts:L87-L89`).
 
 #### Esempio
 
@@ -617,7 +624,7 @@ export const occFieldsProviders: Provider[] = [provideConfig(occFieldsConfig)];
 
 #### Perché funziona (file sorgente)
 
-- `provideConfig` registra un `ConfigChunk` che vince su ogni `provideDefaultConfig` di libreria, anche su quelli forniti da moduli lazy come `CartBaseOccModule` (`core-libs/core/src/config/config-providers.ts:L11-L27`, `core-libs/core/src/config/config-tokens.ts:L10-L21`, `core-libs/core/src/config/services/configuration.service.ts:L92-L105`, `feature-libs/cart/base/occ/cart-base-occ.module.ts:L35-L35`).
+- `provideConfig` registra un `ConfigChunk` che vince su ogni `provideDefaultConfig`/`provideDefaultConfigFactory` di libreria, anche su quelli forniti da moduli lazy come `CartBaseOccModule` (che usa `provideDefaultConfigFactory(defaultOccCartConfigFactory)`, anch'esso un `DefaultConfigChunk`: `core-libs/core/src/config/config-providers.ts:L73-L78`; `core-libs/core/src/config/config-providers.ts:L11-L27`, `core-libs/core/src/config/config-tokens.ts:L10-L21`, `core-libs/core/src/config/services/configuration.service.ts:L92-L105`, `feature-libs/cart/base/occ/cart-base-occ.module.ts:L35-L35`).
 - La demo applica la config OPF proprio con `provideConfig` dal modulo feature root (`projects/storefrontapp/src/app/spartacus/features/opf/opf-feature.module.ts:L85-L91`); B2B fa lo stesso con `defaultB2bOccConfig` (`core-libs/setup/recipes/b2b/config/default-b2b-occ-config.ts:L27-L49`, `projects/storefrontapp/src/app/spartacus/spartacus-b2b-configuration.providers.ts:L20-L20`).
 - `OccEndpointsService` legge `backend.occ.endpoints` dall'oggetto config a ogni `buildUrl` (`core-libs/core/src/occ/services/occ-endpoints.service.ts:L196-L204`).
 - Il campo arriva nella risposta e, se non c'è un normalizer che lo rimuove, passa nel modello: i normalizer di default partono da una copia della sorgente (`core-libs/core/src/occ/adapters/product/converters/product-name-normalizer.ts:L17-L18`).
@@ -811,7 +818,7 @@ export class LoyaltyTransactionsModule {}
 - **`buildUrl` non è tipizzato sulla chiave** (`endpoint: string`): un refuso nella chiave non dà errore di compilazione (`core-libs/core/src/occ/services/occ-endpoints.service.ts:L111-L115`). Incapsulare la chiamata in un metodo `protected get…Endpoint`, come fa OPF, limita il rischio (`integration-libs/opf/gift-card/occ/adapters/occ-opf-gift-card.adapter.ts:L68-L82`).
 - **Endpoint non configurato** → nessun errore: viene usato **il nome della chiave** come path (`<baseUrl>/occ/v2/<site>/loyaltyTransactions`); scope mancante → warning solo in dev mode e fallback sul `default` (`core-libs/core/src/occ/services/occ-endpoints.service.ts:L199-L224`).
 - **Placeholder senza valore** restano letterali nell'URL (`core-libs/core/src/config/utils/string-template.ts:L20-L30`).
-- **`queryParams` ricodifica la query del template** (`,`→`%2C`, `(`→`%28`) e `null` può rimuovere anche il `fields` del template (`core-libs/core/src/occ/services/occ-endpoints.service.ts:L125-L146`, `core-libs/core/src/util/http-params-uri.encoder.ts:L16-L23`).
+- **`queryParams` ricodifica la query del template** con `encodeURIComponent` (per esempio `,`→`%2C`; le parentesi restano invariate) e `null` può rimuovere anche il `fields` del template (`core-libs/core/src/occ/services/occ-endpoints.service.ts:L125-L146`, `core-libs/core/src/util/http-params-uri.encoder.ts:L16-L23`).
 - **URL fuori dal baseSite** (`baseSite: false` / `prefix: false`) non ricevono `lang`/`curr` (`core-libs/core/src/occ/adapters/site-context/site-context.interceptor.ts:L58-L58`).
 - In una libreria vera i due provider dell'esempio starebbero in posti diversi: `provideDefaultConfig` nella libreria, `provideConfig` nell'app (JSDoc di `provideDefaultConfig`, `core-libs/core/src/config/config-providers.ts:L50-L61`).
 
@@ -823,7 +830,7 @@ Quando una pagina (identificata da tipo, template o uid CMS) richiede title, hea
 
 #### Esempio
 
-Esempio illustrativo, non presente nel repo. Resolver per la content page con uid `loyalty` (uid inventato, va creato nel CMS): heading tradotto, breadcrumb "Account" inserito dopo "Home", resto delegato a `BasePageMetaResolver`.
+Esempio illustrativo, non presente nel repo. Resolver per la content page con uid `loyalty` (uid inventato, va creato nel CMS): heading tradotto, breadcrumb "Account" inserito dopo "Home"; title, description, robots e canonical URL delegati a `BasePageMetaResolver`, come fa `ContentPageMetaResolver` che questo resolver sostituisce sulla pagina (`core-libs/core/src/cms/page/content-page-meta.resolver.ts:L50-L52`, `core-libs/core/src/cms/page/content-page-meta.resolver.ts:L62-L64`).
 
 ```ts
 // app/loyalty/loyalty-page-meta.resolver.ts  (esempio illustrativo, non presente nel repo)
@@ -833,7 +840,9 @@ import { map } from 'rxjs/operators';
 import {
   BasePageMetaResolver,
   BreadcrumbMeta,
+  CanonicalPageResolver,
   PageBreadcrumbResolver,
+  PageDescriptionResolver,
   PageHeadingResolver,
   PageMetaResolver,
   PageRobotsMeta,
@@ -849,8 +858,10 @@ export class LoyaltyPageMetaResolver
   implements
     PageTitleResolver,
     PageHeadingResolver,
+    PageDescriptionResolver,
     PageBreadcrumbResolver,
-    PageRobotsResolver
+    PageRobotsResolver,
+    CanonicalPageResolver
 {
   constructor(
     protected translation: TranslationService,
@@ -881,8 +892,17 @@ export class LoyaltyPageMetaResolver
     );
   }
 
+  resolveDescription(): Observable<string | undefined> {
+    return this.basePageMetaResolver.resolveDescription();
+  }
+
   resolveRobots(): Observable<PageRobotsMeta[]> {
     return this.basePageMetaResolver.resolveRobots();
+  }
+
+  // Senza questi due metodi la pagina perderebbe description e canonical URL
+  resolveCanonicalUrl(): Observable<string | undefined> {
+    return this.basePageMetaResolver.resolveCanonicalUrl();
   }
 }
 
@@ -918,7 +938,7 @@ export class LoyaltyPageMetaModule {}
 #### Limiti e trappole
 
 - **Parità di score**: con gli stessi criteri di un resolver esistente si vince solo se registrati dopo; un criterio non corrispondente vale -1/-10 e può portare lo score a ≤ 0 (`core-libs/core/src/util/applicable.ts:L76-L86`, `core-libs/core/src/cms/page/page-meta.resolver.ts:L31-L49`).
-- **Metodo assente = proprietà non risolta**: il resolver scelto sostituisce in blocco il generico; se manca `resolveDescription` la description non viene prodotta (`core-libs/core/src/cms/facade/page-meta.service.ts:L84-L103`). Per questo gli esempi reali delegano esplicitamente ogni metodo a `BasePageMetaResolver`.
+- **Metodo assente = proprietà non risolta**: il resolver scelto sostituisce in blocco il generico; se manca `resolveDescription` la description non viene prodotta (`core-libs/core/src/cms/facade/page-meta.service.ts:L84-L103`). Gli esempi reali delegano esplicitamente a `BasePageMetaResolver` i metodi che vogliono conservare: `CheckoutPageMetaResolver`, per esempio, non risolve né breadcrumbs né canonical URL (`feature-libs/checkout/base/core/services/checkout-page-meta.resolver.ts:L32-L39`).
 - **`pageMeta.resolvers` è un array**: fornirne uno nuovo cancella le 7 voci di default (Regola A). Per aggiungere una proprietà bisogna ripartire da `defaultPageMetaConfig` (esportato) (`core-libs/core/src/cms/page/config/default-page-meta.config.ts:L9-L40`, `core-libs/core/src/cms/page/index.ts:L8-L8`).
 - **Proprietà nuove non arrivano al DOM**: `SeoMetaService` scrive solo title/description/image/robots/canonicalUrl (`core-libs/storefront/cms-structure/seo/seo-meta.service.ts:L32-L45`); `PageMeta` non è nel blocco AUGMENTABLE_TYPES (`core-libs/core/src/cms/model/page.model.ts:L40-L78`, `core-libs/core/public_api.ts:L38-L58`). ⚠️ DA VERIFICARE se un'augmentation di `PageMeta` da app funziona sul pacchetto pubblicato (non verificabile senza `node_modules`).
 - **`BasePageMetaResolver` non è un resolver**: non estende `PageMetaResolver`; registrato sul token multi non avrebbe `hasMatch`/`getPriority` (`core-libs/core/src/cms/page/base-page-meta.resolver.ts:L28-L35`, `core-libs/core/src/util/applicable.ts:L68-L80`).
@@ -1342,7 +1362,7 @@ Ricette collegate in Parte III:
 3. **`load` vs `loadMany`.** Il percorso degli effect prodotto passa da `getMany`→`loadMany` (`core-libs/core/src/product/store/effects/product.effect.ts:L45-L53`, `core-libs/core/src/product/connectors/product/product.connector.ts:L23-L32`).
 4. **Normalizer root prima dei lazy.** `getMulti` concatena root → lazy: un normalizer di `CART_NORMALIZER` nella root non vede l'output di `OccCartNormalizer` (`core-libs/core/src/lazy-loading/unified-injector.ts:L56-L67`, `integration-libs/opf/gift-card/root/opf-gift-card-root.module.ts:L52-L56`).
 5. **Il primo normalizer crea il target.** `reduce` parte da `undefined` (`core-libs/core/src/util/converter.service.ts:L130-L137`).
-6. **`multi: true` dimenticato = errore, non sostituzione.** (`angular:packages/core/src/di/r3_injector.ts:L500-L505`, `core-libs/core/src/lazy-loading/unified-injector.ts:L84-L88`). In produzione (senza `ngDevMode`) il comportamento di un provider non-multi seguito da uno multi nello stesso injector non è stato verificato. ⚠️ DA VERIFICARE (`angular:packages/core/src/di/r3_injector.ts:L497-L512`).
+6. **`multi: true` dimenticato = errore, non sostituzione.** (`angular:packages/core/src/di/r3_injector.ts:L500-L505` multi dopo singolo, `angular:packages/core/src/di/r3_injector.ts:L513-L519` singolo dopo multi, `core-libs/core/src/lazy-loading/unified-injector.ts:L84-L88`). In produzione (senza `ngDevMode`) un singolo registrato dopo i multi sostituisce il record (`this.records.set(token, record)`), l'istanza non è un array e `UnifiedInjector.getMulti`, usato da `ConverterService`, lancia `Multi-providers mixed with single providers`; un multi registrato dopo un singolo trova `multi` indefinito e `multiRecord.multi!.push(provider)` lancia un `TypeError` (`angular:packages/core/src/di/r3_injector.ts:L497-L521`, `core-libs/core/src/util/converter.service.ts:L57-L57`).
 7. **Normalizer prodotto ovunque.** `PRODUCT_NORMALIZER` gira anche su entry di carrello, ordini, resi, quote, con prodotti parziali (`feature-libs/cart/base/occ/adapters/converters/occ-cart-normalizer.ts:L31-L39`, `feature-libs/order/occ/adapters/converters/occ-order-normalizer.ts:L74-L74`).
 8. **Serializer pass-through e raggio d'azione.** Senza provider `convert` restituisce il modello (`core-libs/core/src/util/converter.service.ts:L106-L112`); con un provider, `ADDRESS_SERIALIZER` tocca anche checkout e organization (`feature-libs/checkout/base/occ/adapters/occ-checkout-delivery-address.adapter.ts:L37-L42`).
 9. **`fields` = sostituzione dell'intera stringa.** (`core-libs/core/src/config/utils/deep-merge.ts:L43-L45`, `integration-libs/opf/gift-card/root/config/default-occ-opf-gift-card-cart-config.ts:L11-L13`).
@@ -1385,7 +1405,7 @@ Ricette collegate in Parte III:
    No: `getMulti` concatena prima le istanze root e poi quelle lazy, e `reduce` parte da `undefined`; il normalizer root gira per primo e deve creare il target (`core-libs/core/src/lazy-loading/unified-injector.ts:L56-L67`, `core-libs/core/src/util/converter.service.ts:L130-L137`).
 
 4. **Cosa succede se dimentico `multi: true` registrando un normalizer?**
-   Non c'è sostituzione silenziosa: Angular in dev mode lancia l'errore di provider misti nello stesso injector, e `UnifiedInjector.getMulti` lancia `Multi-providers mixed with single providers` se trova un'istanza non-array (`angular:packages/core/src/di/r3_injector.ts:L500-L505`, `core-libs/core/src/lazy-loading/unified-injector.ts:L84-L88`).
+   Non c'è sostituzione silenziosa: Angular in dev mode lancia l'errore di provider misti nello stesso injector, e `UnifiedInjector.getMulti` lancia `Multi-providers mixed with single providers` se trova un'istanza non-array (`angular:packages/core/src/di/r3_injector.ts:L500-L505`, `angular:packages/core/src/di/r3_injector.ts:L513-L519`, `core-libs/core/src/lazy-loading/unified-injector.ts:L84-L88`).
 
 5. **Voglio aggiungere un campo al `fields` del carrello: basta ridefinire `cart`?**
    No: la stringa sostituisce quella di default (va ricopiata per intero) e il carrello `current` è caricato con `carts` via `loadAll`; anche `createCart` ha i suoi `fields` (`core-libs/core/src/config/utils/deep-merge.ts:L43-L45`, `feature-libs/cart/base/occ/adapters/occ-cart.adapter.ts:L46-L50`, `feature-libs/cart/base/occ/config/default-occ-cart-config-factory.ts:L15-L19`).
