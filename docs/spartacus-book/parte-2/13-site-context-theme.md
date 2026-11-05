@@ -60,12 +60,12 @@ Il capitolo presuppone i meccanismi di configurazione descritti in [11 — Confi
 | `core-libs/core/src/occ/adapters/site-context/site-context.interceptor.ts` | `SiteContextInterceptor`: query param `lang`/`curr` |
 | `core-libs/core/src/occ/services/occ-endpoints.service.ts` | base site attivo nel path OCC |
 | `core-libs/core/src/site-theme/site-theme.module.ts` | `SiteThemeModule.forRoot()` |
-| `core-libs/core/src/site-theme/config/site-theme-config.ts`, `config/default-site-theme-config.ts` | `SiteThemeConfig`, temi opzionali di default |
+| `core-libs/core/src/site-theme/config/site-theme-config.ts`, `core-libs/core/src/site-theme/config/default-site-theme-config.ts` | `SiteThemeConfig`, temi opzionali di default |
 | `core-libs/core/src/site-theme/facade/site-theme.service.ts` | `SiteThemeService`: default, lista temi, validazione |
 | `core-libs/core/src/site-theme/services/site-theme-initializer.ts` | init tema e precedenza statico > opzionale > CMS |
 | `core-libs/core/src/site-theme/services/site-theme-persistence.service.ts` | sync tema con `localStorage` (chiave `siteTheme`) |
 | `core-libs/core/src/site-theme/store/*` | feature `siteTheme`, action, reducer, effect, selector |
-| `core-libs/storefront/layout/theme/theme.module.ts`, `theme.service.ts` | applicazione della classe CSS del tema sul root component |
+| `core-libs/storefront/layout/theme/theme.module.ts`, `core-libs/storefront/layout/theme/theme.service.ts` | applicazione della classe CSS del tema sul root component |
 
 ## 3. Come funziona passo per passo
 
