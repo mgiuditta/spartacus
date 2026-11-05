@@ -938,7 +938,7 @@ Per la configurazione di Spartacus vera e propria (`provideConfig`, `Config`, sc
 | `OutletModule.forRoot()` / `forChild()` | factory `ModuleWithProviders` | `core-libs/storefront/cms-structure/outlet/outlet.module.ts:L54-L88` | `forChild()` nei moduli lazy |
 | schematic `modernize-app-to-standalone-bootstrap-application` | schematic | `core-libs/schematics/src/collection.json:L49-L52` | migrare un'app Spartacus da `bootstrapModule` a `bootstrapApplication` |
 
-Gli export esatti nei barrel di `ConfigModule`, `OutletModule` e `AppRoutingModule` (`index.ts` intermedi) non sono stati verificati riga per riga: ⚠️ DA VERIFICARE con grep nei `public_api.ts` prima di usarli in codice applicativo ([54 — API pubblica vs interna](../parte-3/54-upgrade-safe.md)).
+I tre simboli sono importabili dagli entry point pubblici, come mostrano gli usi nel repo: `import { AppRoutingModule } from '@spartacus/storefront';` (`projects/storefrontapp/src/app/app.module.ts:L11-L11`), `import { ConfigModule } from '@spartacus/core';` (`projects/storefrontapp/src/test-outlets/test-outlet.module.ts:L11-L11`), `import { Card, CardComponent, OutletModule } from '@spartacus/storefront';` (`feature-libs/order/components/order-details/order-detail-billing/order-detail-billing.component.ts:L16-L16`). Per la distinzione tra API pubblica e interna vedi [54 — API pubblica vs interna](../parte-3/54-upgrade-safe.md).
 
 Ricette correlate nella Parte III:
 
