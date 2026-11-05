@@ -21,3 +21,4 @@
 - TODO Fase 5: anche cap. 15 ha link in backtick da convertire. 23:52 Counter({'todo': 35, 'dossier': 9, 'scritto': 7})
 - 23:57 Counter({'todo': 34, 'scritto': 13, 'dossier': 4}). Coda: A39 A40 A42 A43 A44 A45 A46 A47 A02 A03 A04 A06 A08 A50-54
 - 00:00 Counter({'todo': 31, 'scritto': 16, 'dossier': 4}). Coda: A42 A43 A44 A45 A46 A47 A02 A03 A04 A06 A08 A50-54
+- 00:02 Counter({'todo': 30, 'scritto': 16, 'dossier': 5}). Coda: A43 A44 A45 A46 A47 A02 A03 A04 A06 A08 A50-54
