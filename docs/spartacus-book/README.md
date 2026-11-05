@@ -52,7 +52,7 @@ Il libro è stato prodotto da agenti, in fasi distinte:
 Documenti di lavoro:
 
 - [DECISIONS.md](DECISIONS.md): decisioni prese durante il lavoro;
-- `REPORT.md`: rapporto finale (prodotto alla chiusura del lavoro);
+- [REPORT.md](REPORT.md): rapporto finale (prodotto alla chiusura del lavoro);
 - [INVENTORY.md](INVENTORY.md): inventario del monorepo;
 - [OUTLINE.md](OUTLINE.md): piano dei capitoli;
 - [COVERAGE.csv](COVERAGE.csv): stato di copertura di ogni file sorgente.
