@@ -755,7 +755,7 @@ Per i meccanismi generali (`provideDefaultConfig`, config factory, merge) vedi i
 
 Consigli di upgrade-safety (vedi [capitolo 54](../parte-3/54-upgrade-safe.md)): preferire le facade astratte di `@spartacus/user/*/root` e gli eventi agli internals dello store `user`, i cui reducer ed effect **non** sono esportati dal barrel — `core-libs/core/src/user/index.ts:L7-L15`.
 
-> ⚠️ DA VERIFICARE — `UserNotificationPreferenceAdapter` e il suo connector non sono riesportati dal barrel (`core-libs/core/src/user/connectors/index.ts:L7-L12`); il dossier non ha trovato un'altra via di export (Q2). Prima di sostituirlo, verificare che il simbolo sia importabile da `@spartacus/core`.
+> Nota: `UserNotificationPreferenceAdapter` e il suo connector sono esportati solo dal barrel locale `core-libs/core/src/user/connectors/notification-preference/index.ts:L8-L9`, che a sua volta non è riesportato da `core-libs/core/src/user/connectors/index.ts:L7-L12`; fuori da `core-libs/core/src/user/` gli unici import sono relativi (`core-libs/core/src/occ/adapters/user/user-occ.module.ts:L19-L19`, `core-libs/core/src/occ/adapters/user/occ-user-notification-preference.adapter.ts:L19-L20`). Quindi il simbolo non è importabile da `@spartacus/core` e il token astratto, registrato con `useClass: OccUserNotificationPreferenceAdapter` (`core-libs/core/src/occ/adapters/user/user-occ.module.ts:L50-L51`), non è sovrascrivibile tramite API pubblica (è esportata solo la classe OCC, `core-libs/core/src/occ/adapters/user/index.ts:L13-L13`).
 
 ## 9. Trappole, casi limite, comportamenti controintuitivi
 

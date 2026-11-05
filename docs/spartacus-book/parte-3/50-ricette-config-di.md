@@ -30,7 +30,7 @@ File sorgente che abilitano le ricette (non file da modificare: le ricette si ap
 
 | Path | Ruolo |
 |---|---|
-| `core-libs/core/public_api.ts` | Superficie pubblica di `@spartacus/core`; blocco `AUGMENTABLE_TYPES` con `Config` (L38-L40) |
+| `core-libs/core/public_api.ts` | Superficie pubblica di `@spartacus/core`; blocco AUGMENTABLE_TYPES con `Config` (L38-L40) |
 | `core-libs/core/src/config/index.ts` | Barrel config: provider helper, token, `ConfigModule`, `ConfigurationService`, initializer, validator |
 | `core-libs/core/src/config/config-tokens.ts` | `Config`, `DefaultConfig`, `RootConfig`, `ConfigChunk`, `DefaultConfigChunk` e factory di merge |
 | `core-libs/core/src/config/config-providers.ts` | `provideConfig`, `provideConfigFactory`, `provideDefaultConfig`, `provideDefaultConfigFactory` |
@@ -255,7 +255,7 @@ L'applicazione può poi scrivere `provideConfig({ shopHeaders: { value: 'kiosk' 
 
 Catena di export:
 
-- `Config`: `core-libs/core/public_api.ts:L40-L40` (blocco `AUGMENTABLE_TYPES`) e `core-libs/core/public_api.ts:L15-L15` → `core-libs/core/src/config/index.ts:L10-L16` → definizione `core-libs/core/src/config/config-tokens.ts:L17-L21`.
+- `Config`: `core-libs/core/public_api.ts:L40-L40` (blocco AUGMENTABLE_TYPES) e `core-libs/core/public_api.ts:L15-L15` → `core-libs/core/src/config/index.ts:L10-L16` → definizione `core-libs/core/src/config/config-tokens.ts:L17-L21`.
 - `provideDefaultConfig`: `core-libs/core/src/config/index.ts:L9-L9` → definizione `core-libs/core/src/config/config-providers.ts:L55-L61`.
 - `ConfigValidator`, `provideConfigValidator`: `core-libs/core/src/config/index.ts:L17-L17` → `core-libs/core/src/config/config-validator/index.ts:L7-L7` → definizioni `core-libs/core/src/config/config-validator/config-validator.ts:L20-L20`, `core-libs/core/src/config/config-validator/config-validator.ts:L27-L35`.
 
@@ -369,7 +369,7 @@ export class CustomAuthHttpHeaderService extends AuthHttpHeaderService {
 export class CustomAuthModule {}
 ```
 
-`CustomAuthModule` va importato in un modulo **eager** (es. l'`AppModule`), non in un modulo lazy.
+*CustomAuthModule* va importato in un modulo **eager** (es. l'`AppModule`), non in un modulo lazy.
 
 Catena di export:
 
@@ -378,7 +378,7 @@ Catena di export:
 #### Perché funziona (file sorgente)
 
 - Un record esplicito nell'injector ha precedenza sulla definizione `@Injectable({providedIn})`: quest'ultima è usata solo se `records.get(token)` è `undefined` — `angular:packages/core/src/di/r3_injector.ts:L347-L366`.
-- `useExisting` è un alias: chi inietta `AuthHttpHeaderService` riceve la stessa istanza di `CustomAuthHttpHeaderService` — `angular:packages/core/src/di/r3_injector.ts:L657-L677`.
+- `useExisting` è un alias: chi inietta `AuthHttpHeaderService` riceve la stessa istanza di *CustomAuthHttpHeaderService* — `angular:packages/core/src/di/r3_injector.ts:L657-L677`.
 - `isOccUrl` è `protected` ed è l'unico punto usato da `shouldCatchError`, `shouldAddAuthorizationHeader` e `alterRequest` — `core-libs/core/src/auth/user-auth/services/auth-http-header.service.ts:L175-L207`.
 - Una sottoclasse `@Injectable` senza costruttore usa la factory del padre (`ɵɵgetInheritedFactory`) — `angular:packages/core/src/render3/di.ts:L918-L945`; lo stesso schema è usato nel repo da `InternalServerErrorHandler` — `core-libs/core/src/global-message/http-interceptors/handlers/internal-server/internal-server.handler.ts:L13-L29`.
 - Modello reale: `AsmRootModule` sostituisce `AuthStorageService`, `AuthService`, `AuthHttpHeaderService` con `useExisting` verso sottoclassi `providedIn: 'root'`, nel root module eager — `feature-libs/asm/root/asm-root.module.ts:L65-L87`, `feature-libs/asm/root/services/asm-auth-http-header.service.ts:L26-L60`.
@@ -522,7 +522,7 @@ export const shopHeadersInterceptors: Provider[] = [
 export class ShopHeadersModule {}
 ```
 
-`ShopHeadersModule` va importato in un modulo eager e l'app deve avere `provideHttpClient(withInterceptorsFromDi())`.
+*ShopHeadersModule* va importato in un modulo eager e l'app deve avere `provideHttpClient(withInterceptorsFromDi())`.
 
 Catena di export:
 
