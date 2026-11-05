@@ -33,3 +33,5 @@
 - 00:45 Counter({'scritto': 32, 'corretto': 16, 'review': 2, 'dossier': 1}). Prossimi verificatori: 40 41 42 43 44 45 46 47 02 03 04 06 08 50-54
 - 00:50 Counter({'corretto': 29, 'scritto': 16, 'review': 5, 'dossier': 1}). Prossimi verificatori: 06 08 50 51 52 53 54 (45 46 47 02 03 04 42 43 44 in corso)
 - 00:54 FASE 3 COMPLETATA: 51/51 capitoli scritti. Fase 4 in corso (36 corretti). Copertura: agenti gap su 23-36 in corso.
+- 01:16 FASE 4 COMPLETATA: 51/51 capitoli verificati e corretti (review con ## Applicazione). check-refs: 0 errori; check-public-api: 0 violazioni (195 import); COVERAGE: 6962 documentato + 1210 escluso, 0 todo.
+- 01:16 FASE 5 COMPLETATA: README.md (indice + 3 percorsi), A11 glossario, A12 indice simboli, REPORT.md. Commit e push finali.

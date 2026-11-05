@@ -79,7 +79,7 @@ def links(md):
             if not os.path.exists(os.path.normpath(os.path.join(d,t))): errs.append(f'{md}:{i}: link interno rotto: {t}')
     return errs
 if __name__=='__main__':
-    files=sys.argv[1:] or sorted(glob.glob(f'{book}/parte-*/*.md')+glob.glob(f'{book}/appendici/*.md')+glob.glob(f'{book}/README.md'))
+    files=sys.argv[1:] or sorted(glob.glob(f'{book}/parte-*/*.md')+glob.glob(f'{book}/appendici/*.md')+glob.glob(f'{book}/README.md')+glob.glob(f'{book}/REPORT.md'))
     allerr=[]
     for f in files: allerr+=check(f)+links(f)
     for e in allerr: print(e.replace(book+'/',''))
