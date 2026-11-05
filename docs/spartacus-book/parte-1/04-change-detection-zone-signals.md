@@ -197,7 +197,7 @@ Un input di binding cambiato marca `Dirty` la view figlia non-`CheckAlways` (`ma
 5. Chi contribuisce alla stabilità:
    - il pending task del bootstrap — `angular:packages/core/src/platform/bootstrap.ts:L137-L178`;
    - il pending task di zona (`ZoneStablePendingTask`, solo con Zone);
-   - il `pendingRenderTaskId` dello scheduler — `angular:packages/core/src/change_detection/scheduling/zoneless_scheduling_impl.ts:L220-L220`;
+   - il `pendingRenderTaskId` dello scheduler — `angular:packages/core/src/change_detection/scheduling/zoneless_scheduling_impl.ts:L217-L217`;
    - ogni richiesta `HttpClient` che passa dalla catena di interceptor, se `REQUESTS_CONTRIBUTE_TO_STABILITY` vale `true` (default) — `angular:packages/common/http/src/interceptor.ts:L217-L251`;
    - i task aggiunti a mano con `PendingTasks`.
 6. In SSR `renderApplication` esegue `await applicationRef.whenStable()` prima di `renderInternal` — `angular:packages/platform-server/src/utils.ts:L362-L373`. `CommonEngine` di `@angular/ssr` usa `renderApplication` per le bootstrap function — `deps:angular-ssr-21.2.23/package/fesm2022/node.mjs:L185-L210`. Spartacus estende `CommonEngine` con `CxCommonEngine` — `core-libs/setup/ssr/engine/cx-common-engine.ts:L20-L66`.
@@ -445,7 +445,7 @@ initialize(): void {
 
 ### 5.4 Il filtro dei listener e la mappa sorgente → flag
 
-`angular:packages/core/src/change_detection/scheduling/zoneless_scheduling_impl.ts:L138-L168`
+`angular:packages/core/src/change_detection/scheduling/zoneless_scheduling_impl.ts:L138-L163`
 ```ts
 notify(source: NotificationSource): void {
   if (!this.zonelessEnabled && source === NotificationSource.Listener) {
@@ -501,7 +501,7 @@ this.dirtyFlags &= ~ApplicationRefDirtyFlags.ViewTreeCheck;
 
 ### 5.6 Refresh mirato o solo traversal
 
-`angular:packages/core/src/render3/instructions/change_detection.ts:L481-L499`
+`angular:packages/core/src/render3/instructions/change_detection.ts:L481-L498`
 ```ts
 // Always refresh views marked for refresh, regardless of mode.
 shouldRefreshView ||= !!(flags & LViewFlags.RefreshView);
@@ -737,7 +737,7 @@ init(): void {
 - **`MISSING_ZONEJS`.** Si è chiesto `provideZoneChangeDetection` senza caricare zone.js (`angular:packages/core/src/zone/ng_zone.ts:L151-L158`).
 - **SSR che non termina o va in timeout.** Sottoscrivere `inject(ApplicationRef).isStable` e registrare le emissioni; l'Observable deriva da `PendingTasksInternal` (`angular:packages/core/src/application/application_ref.ts:L326-L334`). Cercare `setInterval`, `interval()` o polling avviati all'avvio (`angular:packages/core/src/application/application_ref.ts:L172-L194`), richieste HTTP che non completano (`angular:packages/common/http/src/interceptor.ts:L243-L247`) e `PendingTasks.add()` senza la rimozione corrispondente.
 - **NG0205 (injector distrutto) in SSR.** Lavoro asincrono non tracciato che riprende dopo la serializzazione: aggiungere un pending task come in `LazyComponentHandler` (`core-libs/storefront/cms-structure/page/component/handlers/lazy-component.handler.ts:L60-L71`).
-- **NG0100 (`ExpressionChangedAfterItHasBeenChecked`).** In dev mode `tickImpl` esegue `checkNoChanges()` su tutte le view (`angular:packages/core/src/application/application_ref.ts:L591-L619`). Nei test Karma di Angular 21 vedi il workaround di `core-libs/core/src/test.ts:L21-L35`.
+- **NG0100 (espressione cambiata dopo il check).** In dev mode `tickImpl` esegue `checkNoChanges()` su tutte le view (`angular:packages/core/src/application/application_ref.ts:L591-L619`). Nei test Karma di Angular 21 vedi il workaround di `core-libs/core/src/test.ts:L21-L35`.
 - **`INFINITE_CHANGE_DETECTION`.**
   - Messaggio "Infinite change detection while refreshing application views": più di 10 giri in `synchronize` (`angular:packages/core/src/application/application_ref.ts:L625-L649`).
   - Messaggio "endless change notifications": 100 notifiche consecutive con lo scheduler a microtask (`angular:packages/core/src/change_detection/scheduling/zoneless_scheduling_impl.ts:L36-L57`).
