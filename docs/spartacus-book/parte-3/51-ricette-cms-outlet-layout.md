@@ -285,7 +285,7 @@ const promoBannerMapping: CmsComponentMapping<CmsPromoBannerComponent> = {
   component: PromoBannerComponent,
   // dati statici: valori iniziali e proprietà assenti nell'API
   data: { ctaLabel: 'Scopri di più' },
-  // il banner è sotto la piega: rendering solo vicino al viewport
+  // il banner è sotto la piega: rendering differito (solo client-side, slot non prerenderizzati)
   deferLoading: DeferLoadingStrategy.DEFER,
 };
 
@@ -315,7 +315,7 @@ Catene di export:
 
 - `CmsComponentMapping<T>` è generico sul tipo dei dati e accetta `component`, `providers`, `childRoutes`, `disableSSR`, `i18nKeys`, `guards`, `data`, `deferLoading` (`core-libs/core/src/cms/config/cms-config.ts:L60-L93`); il JSDoc di `data` elenca gli usi: dati iniziali, proprietà UI assenti nell'API, ghost design (`core-libs/core/src/cms/config/cms-config.ts:L79-L85`).
 - `ComponentDataProvider.get` fonde `{...static, ...cms}` ed emette prima i dati statici con `startWith` (`core-libs/storefront/cms-structure/page/component/services/component-data.provider.ts:L35-L59`); la sorgente CMS è `CmsService.getComponentData` (`core-libs/core/src/cms/facade/cms.service.ts:L74-L74`).
-- `getDeferLoadingStrategy` legge `deferLoading` dallo snapshot statico (`core-libs/storefront/cms-structure/services/cms-components.service.ts:L195-L200`) e lo slot lo passa come `cxOutletDefer` all'outlet del componente (`core-libs/storefront/cms-structure/page/slot/page-slot.component.html:L7-L13`); il deferred loading è spiegato nel cap. [18](../parte-2/18-layout-breakpoint-a11y.md).
+- `getDeferLoadingStrategy` legge `deferLoading` dallo snapshot statico (`core-libs/storefront/cms-structure/services/cms-components.service.ts:L195-L200`) e lo slot lo passa come `cxOutletDefer` all'outlet del componente (`core-libs/storefront/cms-structure/page/slot/page-slot.component.html:L7-L13`) non così com'è ma tramite `PageSlotService.getComponentDeferOptions`, che lo ignora (INSTANT) per gli slot prerenderizzati visibili (`core-libs/storefront/cms-structure/page/slot/page-slot.service.ts:L63-L73`); in SSR `DeferLoaderService` renderizza comunque subito (`core-libs/storefront/layout/loading/defer-loader.service.ts:L55-L63`). Quindi `DeferLoadingStrategy.DEFER` ha effetto solo nella navigazione client-side; il deferred loading è spiegato nel cap. [18](../parte-2/18-layout-breakpoint-a11y.md).
 - Canone di libreria: `ParagraphComponent` standalone, `OnPush`, `public component: CmsComponentData<...>` (`core-libs/storefront/cms-components/content/paragraph/paragraph.component.ts:L20-L47`), template su `component.data$ | async` (`core-libs/storefront/cms-components/content/paragraph/paragraph.component.html:L1-L4`), mapping in `provideDefaultConfig` (`core-libs/storefront/cms-components/content/paragraph/paragraph.module.ts:L14-L35`).
 - Opzioni avanzate del mapping, tutte raccolte da `CmsPageGuardService.canActivatePage` prima dell'attivazione (`core-libs/storefront/cms-structure/guards/cms-page-guard.service.ts:L65-L99`): `guards` uniti in un Set per tutta la pagina (`core-libs/storefront/cms-structure/services/cms-components.service.ts:L253-L261`), `i18nKeys` per precaricare chunk di traduzione (`core-libs/storefront/cms-structure/services/cms-components.service.ts:L266-L276`), `childRoutes` (`core-libs/storefront/cms-structure/services/cms-components.service.ts:L205-L248`). Esempio con `providers` + `guards` + `childRoutes`: `feature-libs/organization/administration/components/budget/budget.config.ts:L29-L80`.
 - Componente senza backend: `provideCmsStructure({ componentId, pageSlotPosition })` crea `cmsStructure.components[componentId] = { typeCode, flexType }` e lo slot globale (`core-libs/storefront/cms-structure/utils/cms-structure.util.ts:L31-L66`); uso reale in `defaultCmsContentProviders` (`core-libs/storefront/recipes/config/static-cms-structure.ts:L10-L19`).
@@ -323,7 +323,7 @@ Catene di export:
 #### Limiti e trappole
 
 - **Dati parziali**: il primo valore di `data$` è il solo dato statico (`core-libs/storefront/cms-structure/page/component/services/component-data.provider.ts:L44-L51`); nell'esempio `headline` è inizialmente `undefined`.
-- **Componente statico senza uid**: `data$` è `of(static)` o `EMPTY` (`core-libs/storefront/cms-structure/page/component/services/component-data.provider.ts:L55-L57`); con `EMPTY` un `*ngIf="data$ | async"` non disegna nulla, quindi per componenti forniti con `provideCmsStructure` serve `data` nel mapping oppure un template che non dipende da `data$`.
+- **Componente senza uid**: `data$` è `of(static)` o `EMPTY` (`core-libs/storefront/cms-structure/page/component/services/component-data.provider.ts:L55-L57`); con `EMPTY` un `*ngIf="data$ | async"` non disegna nulla. Il ramo vale solo per componenti senza `uid`: i componenti di `provideCmsStructure`/`cmsStructure.slots` ricevono `uid = componentId` (`core-libs/core/src/cms/services/cms-structure-config.service.ts:L180-L180`), sono aggiunti allo slot e a `pageStructure.components` (`core-libs/core/src/cms/services/cms-structure-config.service.ts:L153-L161`) e i loro dati (`typeCode`, `flexType`, più eventuali attributi in `cmsStructure.components`) arrivano da `getComponentData(uid)` (`core-libs/storefront/cms-structure/page/component/services/component-data.provider.ts:L43-L54`).
 - **`disableSSR: true`** toglie il componente anche da `childRoutes` e `i18nKeys` lato server (`core-libs/storefront/cms-structure/services/cms-components.service.ts:L187-L190`, `core-libs/storefront/cms-structure/services/cms-components.service.ts:L208-L210`, `core-libs/storefront/cms-structure/services/cms-components.service.ts:L269-L270`).
 - **`childRoutes`** funzionano solo su content page con label che inizia con `/` e causano `resetConfig` + nuova navigazione (`core-libs/storefront/cms-structure/services/cms-routes-impl.service.ts:L82-L88`, `core-libs/storefront/cms-structure/services/cms-routes-impl.service.ts:L98-L123`).
 - **Componente lazy** (`component: () => import(...).then(m => m.X)`): riconosciuto da `LazyComponentHandler` solo se `toString()` della funzione inizia con `function()` o `()=>` (`core-libs/storefront/cms-structure/page/component/handlers/lazy-component.handler.ts:L45-L48`); altrimenti cade sul `DefaultComponentHandler` che tratta ogni funzione come classe (`core-libs/storefront/cms-structure/page/component/handlers/default-component.handler.ts:L28-L30`). ⚠️ DA VERIFICARE con l'output del builder esbuild di Angular 21 (dossier Q3); nel codice non-spec del repo non c'è un esempio reale di questa forma (dossier Q5).
@@ -438,7 +438,11 @@ Quando il contenuto da inserire è un pezzo di HTML legato a una pagina specific
 // faq-page.component.ts — esempio illustrativo, non presente nel repo
 import { AsyncPipe, NgFor } from '@angular/common';
 import { Component } from '@angular/core';
-import { OutletRefDirective, PageLayoutComponent } from '@spartacus/storefront';
+import {
+  OutletPosition,
+  OutletRefDirective,
+  PageLayoutComponent,
+} from '@spartacus/storefront';
 
 @Component({
   selector: 'app-faq-page',
@@ -446,7 +450,11 @@ import { OutletRefDirective, PageLayoutComponent } from '@spartacus/storefront';
     <cx-page-layout />
 
     <!-- prima dello slot Section2A (contesto: { components$ }) -->
-    <ng-template [cxOutletRef]="'Section2A'" cxOutletPos="before" let-model>
+    <ng-template
+      [cxOutletRef]="'Section2A'"
+      [cxOutletPos]="outletPosition.BEFORE"
+      let-model
+    >
       <nav class="faq-index">
         <a *ngFor="let c of model.components$ | async" [href]="'#' + c.uid">
           {{ c.uid }}
@@ -457,7 +465,7 @@ import { OutletRefDirective, PageLayoutComponent } from '@spartacus/storefront';
     <!-- dopo ogni CMSParagraphComponent (contesto: { component }) -->
     <ng-template
       [cxOutletRef]="'CMSParagraphComponent'"
-      cxOutletPos="after"
+      [cxOutletPos]="outletPosition.AFTER"
       let-model
     >
       <a class="faq-top" [attr.id]="model.component.uid" href="#">Torna su</a>
@@ -465,7 +473,10 @@ import { OutletRefDirective, PageLayoutComponent } from '@spartacus/storefront';
   `,
   imports: [PageLayoutComponent, OutletRefDirective, NgFor, AsyncPipe],
 })
-export class FaqPageComponent {}
+export class FaqPageComponent {
+  // l'enum serve al template: con strictTemplates cxOutletPos="before" non compila
+  protected readonly outletPosition = OutletPosition;
+}
 ```
 
 Catene di export:
@@ -473,6 +484,7 @@ Catene di export:
 | Simbolo | Catena |
 |---|---|
 | `OutletRefDirective` | `core-libs/storefront/public_api.ts:L23-L23` → `core-libs/storefront/cms-structure/index.ts:L9-L9` → `core-libs/storefront/cms-structure/outlet/index.ts:L7-L7` → `core-libs/storefront/cms-structure/outlet/outlet-ref/outlet-ref.directive.ts:L17-L36` |
+| `OutletPosition` | vedi [3.4](#34-r4--inserire-un-componente-in-un-outlet-con-provideoutlet) |
 | `PageLayoutComponent` | `core-libs/storefront/cms-structure/index.ts:L10-L10` → `core-libs/storefront/cms-structure/page/index.ts:L9-L9` → `core-libs/storefront/cms-structure/page/page-layout/index.ts:L8-L8` → `core-libs/storefront/cms-structure/page/page-layout/page-layout.component.ts:L30-L58` |
 
 #### Perché funziona (file sorgente)
@@ -484,6 +496,7 @@ Catene di export:
 
 #### Limiti e trappole
 
+- **`cxOutletPos` testuale e `strictTemplates`**: l'input è di tipo `OutletPosition`, un enum di stringhe (`core-libs/storefront/cms-structure/outlet/outlet-ref/outlet-ref.directive.ts:L21-L22`, `core-libs/storefront/cms-structure/outlet/outlet.model.ts:L9-L13`). Con `strictTemplates` il compilatore controlla anche gli attributi testuali (`angular:packages/compiler-cli/src/ngtsc/core/src/compiler.ts:L1097-L1097`, `angular:packages/compiler-cli/src/ngtsc/typecheck/src/ops/inputs.ts:L199-L202`), e `cxOutletPos="before"` dà TS2322 (letterale stringa non assegnabile all'enum). Per questo l'esempio usa `[cxOutletPos]="outletPosition.BEFORE"`; la forma testuale della demo ([5.10](#510-cxoutletref-nella-demo)) compila solo perché l'app ha `strictTemplates: false` (`projects/storefrontapp/tsconfig.app.json:L19-L21`).
 - **Chiavi stringa libere**: un refuso nel nome di slot/tipo/template non dà errori; la demo stessa legge `model.sections$` mentre il contesto espone `section$` (`projects/storefrontapp/src/test-outlets/test-outlet-template/test-outlet-template.component.html:L7-L7`, `core-libs/storefront/cms-structure/page/page-layout/page-layout.component.html:L5-L9`).
 - **REPLACE sul template di pagina** sostituisce tutto: `ng-content` e tutti gli slot (`core-libs/storefront/cms-structure/page/page-layout/page-layout.component.html:L1-L18`).
 - **Ordine di istanziazione**: la direttiva registra nel suo `ngOnInit`; il contenitore deve esistere prima o insieme all'outlet bersaglio (nella demo è nello stesso template di `<cx-page-layout />`) (`core-libs/storefront/cms-structure/outlet/outlet-ref/outlet-ref.directive.ts:L29-L31`).
@@ -587,13 +600,14 @@ import { LayoutConfig } from '@spartacus/storefront';
 
 @NgModule({
   providers: [
-    // 1) Layout del nuovo template: ordine degli slot, override per xs
+    // 1) Layout del nuovo template: base (mobile first) senza FaqAside,
+    //    da md in su (md, lg) anche FaqAside
     provideConfig(<LayoutConfig>{
       layoutSlots: {
         FaqPageTemplate: {
-          slots: ['FaqIntro', 'FaqBody', 'FaqAside'],
+          slots: ['FaqIntro', 'FaqBody'],
           pageFold: 'FaqBody',
-          xs: { slots: ['FaqIntro', 'FaqBody'] },
+          md: { slots: ['FaqIntro', 'FaqBody', 'FaqAside'] },
         },
       },
     }),
@@ -639,13 +653,14 @@ Catene di export:
 
 - `LayoutConfig` (astratta, `useExisting: Config`) espone `layoutSlots` (`core-libs/storefront/layout/config/layout-config.ts:L90-L125`); `SlotConfig = { slots?, pageFold? }`, `SlotGroup` per `lg/md/sm/xs` (`core-libs/storefront/layout/config/layout-config.ts:L36-L61`).
 - `PageLayoutComponent` usa la section se presente, altrimenti il template della pagina (`core-libs/storefront/cms-structure/page/page-layout/page-layout.component.ts:L30-L58`); `PageLayoutService.resolveSlots` usa `layoutSlots[page.template]` e filtra gli slot mantenendo solo quelli presenti nella pagina (`core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts:L106-L127`).
-- Config per breakpoint: specifica se presente, altrimenti la più vicina tra i breakpoint più piccoli, altrimenti quella di base (`core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts:L217-L243`); breakpoint di default in `core-libs/storefront/layout/config/default-layout.config.ts:L9-L19`.
+- Config per breakpoint: specifica se presente, altrimenti la più vicina tra i breakpoint più piccoli, altrimenti quella di base (`core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts:L217-L243`); breakpoint di default in `core-libs/storefront/layout/config/default-layout.config.ts:L9-L19`. La config dei template passa da qui (`core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts:L166-L171`).
 - `CmsPageConnector.get` salta l'adapter se `shouldIgnoreBackend(pageContext.id)` e fonde sempre la struttura statica (`core-libs/core/src/cms/connectors/page/cms-page.connector.ts:L30-L70`); la pagina è cercata per `pageId === PageContext.id` (`core-libs/core/src/cms/services/cms-structure-config.service.ts:L84-L92`); `CmsPageSlotConfig = { componentIds?, properties? }` (`core-libs/core/src/cms/config/cms-structure.config.ts:L63-L66`).
-- `PageTemplateDirective` aggiunge il nome del template come classe CSS (`core-libs/storefront/cms-structure/page/page-layout/page-template.directive.ts:L46-L46`) e `PageSlotComponent` la `position` dello slot (`core-libs/storefront/cms-structure/page/slot/page-slot.component.ts:L44-L46`): i selettori CSS del nuovo layout sono `.FaqPageTemplate` e `.FaqIntro` (stili: cap. [38](../parte-2/38-stili-theming.md)).
-- Modelli reali: `layoutConfig` di riferimento (es. `ContentPage1Template: { slots: ['Section2A', 'Section2B'] }`) (`core-libs/storefront/recipes/config/layout-config.ts:L13-L27`), fornito nell'app con `provideConfigFactory(layoutConfigFactory)` (`projects/storefrontapp/src/app/spartacus/spartacus-configuration.module.ts:L44-L49`); pagine statiche con `ignoreBackend: true` della demo (`projects/storefrontapp/src/test-outlets/test-outlet-cms-page.config.ts:L33-L76`).
+- `PageTemplateDirective` aggiunge il nome del template come classe CSS (`core-libs/storefront/cms-structure/page/page-layout/page-template.directive.ts:L114-L119`) e `PageSlotComponent` la `position` dello slot (`core-libs/storefront/cms-structure/page/slot/page-slot.component.ts:L44-L46`): i selettori CSS del nuovo layout sono `.FaqPageTemplate` e `.FaqIntro` (stili: cap. [38](../parte-2/38-stili-theming.md)).
+- Modelli reali: `layoutConfig` di riferimento (es. `ContentPage1Template: { slots: ['Section2A', 'Section2B'] }`) (`core-libs/storefront/recipes/config/layout-config.ts:L67-L69`), fornito nell'app con `provideConfigFactory(layoutConfigFactory)` (`projects/storefrontapp/src/app/spartacus/spartacus-configuration.module.ts:L44-L49`); pagine statiche con `ignoreBackend: true` della demo (`projects/storefrontapp/src/test-outlets/test-outlet-cms-page.config.ts:L33-L76`).
 
 #### Limiti e trappole
 
+- **Mobile first**: una config per breakpoint vale anche per tutti i breakpoint più grandi che non ne hanno una propria, perché i breakpoint sono ordinati dal più piccolo al più grande e si tiene l'ultimo più piccolo con `slots` (`core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts:L229-L242`, `core-libs/storefront/layout/breakpoint/breakpoint.service.ts:L134-L136`). Un override su `xs` vale quindi anche per sm/md/lg e rende inutile la config di base; per avere slot diversi solo su xs si mette la variante ridotta come base e quella completa su un breakpoint più grande, come fa `layoutConfig` con `lg`.
 - **Lo slot deve esistere nella pagina**: uno slot in `layoutSlots` che la pagina non contiene viene filtrato (`core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts:L117-L119`). Nell'esempio *FaqAside* non è nella pagina statica e quindi non viene reso.
 - **Template senza config**: tutti gli slot della pagina nell'ordine delle chiavi + warning dev; una section senza config non rende nulla (`core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts:L120-L126`, `core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts:L251-L273`).
 - **Array sostituiti**: un `slots: [...]` rimpiazza l'intera lista del template (`core-libs/core/src/config/utils/deep-merge.ts:L36-L45`); `provideCmsStructure({ pageTemplate, pageSlotPosition })` genera `slots: [pageSlotPosition]` e può azzerare gli altri slot se fuso dopo (`core-libs/storefront/cms-structure/utils/cms-structure.util.ts:L78-L90`).
@@ -944,6 +959,8 @@ export class ParagraphComponent {
 
 ### 5.10 `cxOutletRef` nella demo
 
+La forma testuale `cxOutletPos="before"` compila solo perché la demo ha `strictTemplates: false` (`projects/storefrontapp/tsconfig.app.json:L19-L21`); in un'app strict va legata all'enum, come in [3.5](#35-r5--template-in-un-outlet-con-cxoutletref-replace--before--after).
+
 `projects/storefrontapp/src/test-outlets/test-outlet-component/test-outlet-component.component.html:L1-L13`
 ```html
 <cx-page-layout />
@@ -1198,7 +1215,7 @@ Extension point **non** pubblici da evitare: `PROVIDE_OUTLET_OPTIONS` e `registe
 4. **Mapping mancante**: nessun errore in produzione (`core-libs/storefront/cms-structure/services/cms-components.service.ts:L170-L178`).
 5. **Snapshot statico della config CMS**: i mapping aggiunti tardi non sono visti (`core-libs/storefront/cms-structure/services/cms-components.service.ts:L60-L69`).
 6. **Costruttori nelle sottoclassi**: vanno ripetuti tutti i parametri; meglio non dichiararne (`angular:packages/core/src/render3/di.ts:L918-L935`).
-7. **`data$` emette prima i dati statici** (`core-libs/storefront/cms-structure/page/component/services/component-data.provider.ts:L44-L51`) ed è `EMPTY` per componenti senza uid e senza `data` (`core-libs/storefront/cms-structure/page/component/services/component-data.provider.ts:L55-L57`).
+7. **`data$` emette prima i dati statici** (`core-libs/storefront/cms-structure/page/component/services/component-data.provider.ts:L44-L51`) ed è `EMPTY` per componenti senza uid e senza `data` (`core-libs/storefront/cms-structure/page/component/services/component-data.provider.ts:L55-L57`); i componenti di `provideCmsStructure` hanno invece `uid = componentId` e leggono da `getComponentData(uid)` (`core-libs/core/src/cms/services/cms-structure-config.service.ts:L180-L180`).
 8. **Default di posizione**: AFTER per `provideOutlet`, REPLACE per `cxOutletRef` (`core-libs/storefront/cms-structure/outlet/outlet.module.ts:L42-L42`, `core-libs/storefront/cms-structure/outlet/outlet.service.ts:L34-L34`).
 9. **`OutletModule.forChild()` obbligatorio nei moduli lazy** (`core-libs/storefront/cms-structure/outlet/outlet.module.ts:L72-L88`).
 10. **Registro outlet globale e non reattivo** (`core-libs/storefront/cms-structure/outlet/outlet.service.ts:L31-L42`, `core-libs/storefront/cms-structure/outlet/outlet.directive.ts:L92-L96`).
@@ -1217,7 +1234,7 @@ Extension point **non** pubblici da evitare: `PROVIDE_OUTLET_OPTIONS` e `registe
 - **Outlet**: iniettare `OutletService` e chiamare `get('<id>', OutletPosition.AFTER, true)` per vedere le registrazioni (`core-libs/storefront/cms-structure/outlet/outlet.service.ts:L53-L67`); se l'outlet è già a schermo forzare il ri-render con `OutletRendererService.render('<id>')` (`core-libs/storefront/cms-structure/outlet/outlet-renderer.service.ts:L24-L38`).
 - **Route**: in dev mode "Could not configure the named route" (`core-libs/core/src/routing/configurable-routes/configurable-routes.service.ts:L169-L176`) e "No path was configured for the named route" (`core-libs/core/src/routing/configurable-routes/routing-config.service.ts:L26-L34`). Ispezionare `router.config` dopo il bootstrap per vedere il `path`/`matcher` effettivo e la posizione della route `'**'`.
 - **PageContext**: con lo store devtools guardare lo stato del router (`context`, `cmsRequired`, `semanticRoute`) prodotto da `CustomSerializer` (`core-libs/core/src/routing/store/reducers/router.reducer.ts:L159-L166`).
-- **Layout**: in dev mode `logMissingLayoutConfig` stampa gli slot disponibili e "No layout config found for ..., you can configure a 'LayoutConfig'" (`core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts:L251-L273`). Nel DOM, il nome del template è una classe dell'host del layout e la `position` è una classe di ogni `cx-page-slot` (`core-libs/storefront/cms-structure/page/page-layout/page-template.directive.ts:L46-L46`, `core-libs/storefront/cms-structure/page/slot/page-slot.component.ts:L44-L46`).
+- **Layout**: in dev mode `logMissingLayoutConfig` stampa gli slot disponibili e "No layout config found for ..., you can configure a 'LayoutConfig'" (`core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts:L251-L273`). Nel DOM, il nome del template è una classe dell'host del layout e la `position` è una classe di ogni `cx-page-slot` (`core-libs/storefront/cms-structure/page/page-layout/page-template.directive.ts:L114-L119`, `core-libs/storefront/cms-structure/page/slot/page-slot.component.ts:L44-L46`).
 - **Pagina statica non usata**: verificare che `pageId` coincida con l'id del `PageContext` e che nessun chunk successivo ridefinisca `cmsStructure.pages` (`core-libs/core/src/cms/services/cms-structure-config.service.ts:L84-L92`).
 
 ## 11. Domande di autoverifica
