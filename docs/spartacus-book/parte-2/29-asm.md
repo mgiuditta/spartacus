@@ -77,30 +77,6 @@ La libreria ha 12 entry point ng-packagr, uno per ogni `ng-package.json`: `featu
 | `feature-libs/asm/styles/components/_customer-selection.component.scss` | Placeholder `%cx-customer-selection`. |
 | `feature-libs/asm/styles/components/_dot-spinner.component.scss` | Placeholder `%cx-dot-spinner`. |
 
-### File aggiuntivi
-
-| Path | Ruolo |
-|---|---|
-| `feature-libs/asm/public_api.ts` | Entry `@spartacus/asm`: riesporta solo `asm.module` (`:L10-L10`). |
-| `feature-libs/asm/schematics/add-asm/index.ts` | `addAsmFeatures()`: factory degli schematics `ng-add`/`add` di `@spartacus/asm` (vedi 3.16). |
-| `feature-libs/asm/schematics/add-asm/index_spec.ts` | Test dello schematic: lazy loading, nessuna installazione delle dipendenze, scss, `angular.json`, eager loading. |
-| `feature-libs/asm/_index.scss` | Entry SCSS: core Spartacus + `styles/index` + `customer-360/index`. |
-| `feature-libs/asm/styles/_index.scss` | Importa core e `components/index`. |
-| `feature-libs/asm/styles/components/_index.scss` | Importa i 13 file componente e definisce `$asm-components-allowlist` con `@extend` dei placeholder. |
-| `feature-libs/asm/styles/components/_asm-bind-cart-dialog.component.scss` | Placeholder `%cx-asm-bind-cart-dialog`. |
-| `feature-libs/asm/styles/components/_asm-bind-cart.component.scss` | Placeholder `%cx-asm-bind-cart`. |
-| `feature-libs/asm/styles/components/_asm-create-customer-form.component.scss` | Placeholder `%cx-asm-create-customer-form`. |
-| `feature-libs/asm/styles/components/_asm-main-ui.component.scss` | Placeholder `%cx-asm-main-ui` (barra ASM). |
-| `feature-libs/asm/styles/components/_asm-save-cart-dialog.component.scss` | Placeholder `%cx-asm-save-cart-dialog`. |
-| `feature-libs/asm/styles/components/_asm-session-timer.component.scss` | Placeholder `%cx-asm-session-timer`. |
-| `feature-libs/asm/styles/components/_asm-switch-customer-dialog.component.scss` | Placeholder `%cx-asm-switch-customer-dialog`. |
-| `feature-libs/asm/styles/components/_asm-toggle-ui.component.scss` | Placeholder `%cx-asm-toggle-ui`. |
-| `feature-libs/asm/styles/components/_csagent-login-form.component.scss` | Placeholder `%cx-csagent-login-form`. |
-| `feature-libs/asm/styles/components/_customer-emulation.component.scss` | Placeholder `%cx-customer-emulation`. |
-| `feature-libs/asm/styles/components/_customer-list.component.scss` | Placeholder `%cx-customer-list`. |
-| `feature-libs/asm/styles/components/_customer-selection.component.scss` | Placeholder `%cx-customer-selection`. |
-| `feature-libs/asm/styles/components/_dot-spinner.component.scss` | Placeholder `%cx-dot-spinner`. |
-
 ## 3. Come funziona passo per passo
 
 ### 3.1 Packaging: cosa è eager e cosa è lazy
@@ -270,10 +246,6 @@ La facade è un proxy `facadeFactory` sulla feature `asmCustomer360` (`feature-l
 **Framework delle sezioni.** Il template rende ogni componente della tab in `cx-asm-customer-360-section` passando `[component]`, `[config]`, `[data]` e ascoltando `(navigate)` (`feature-libs/asm/customer-360/components/asm-customer-360/asm-customer-360.component.html:L195-L205`). `AsmCustomer360SectionComponent` fornisce **per istanza** `AsmCustomer360SectionContextSource` (e `AsmCustomer360SectionContext` con `useExisting`), inoltra gli input nei subject della sorgente e rende il componente con `*ngComponentOutlet`; al destroy completa i subject (`feature-libs/asm/customer-360/components/sections/asm-customer-360-section/asm-customer-360-section.component.ts:L23-L75`, `feature-libs/asm/customer-360/components/sections/asm-customer-360-section/asm-customer-360-section.component.html:L1-L1`). Il componente di sezione, creato dentro quell'host, inietta il context e legge `data$`, `config$`, scrive su `navigate$` (`feature-libs/asm/customer-360/components/sections/asm-customer-360-section-context.model.ts:L14-L29`). Esempi: la sezione active cart arricchisce le entry con `ProductService.get(code, ProductScope.DETAILS)` (`feature-libs/asm/customer-360/components/sections/asm-customer-360-active-cart/asm-customer-360-active-cart.component.ts:L40-L75`); la sezione activity mappa i tipi a rotte ed emette su `navigate$` (`feature-libs/asm/customer-360/components/sections/asm-customer-360-activity/asm-customer-360-activity.component.ts:L91-L118`); la sezione mappa combina `config$` e `data$` e chiama `storeFinderService.findStoresAction(...)` (`feature-libs/asm/customer-360/components/sections/asm-customer-360-map/asm-customer-360-map.component.ts:L61-L91`).
 
 **Navigazione dalla sezione.** `navigate$` → `(navigate)` → `navigateTo()` chiude il dialog con un `AsmDialogActionEvent { actionType: NAVIGATE, route }` (`feature-libs/asm/customer-360/components/asm-customer-360/asm-customer-360.component.ts:L218-L225`, `feature-libs/asm/customer-360/core/utils.ts:L16-L27`); `AsmMainUiComponent` lo passa ad `AsmComponentService.handleAsmDialogAction()`, che chiama `routingService.go(route)` (`feature-libs/asm/components/asm-main-ui/asm-main-ui.component.ts:L268-L274`, `feature-libs/asm/components/services/asm-component.service.ts:L111-L118`).
-
-### 3.16 Installazione via schematics e stili
-
-`addAsmFeatures()` valida l'installazione Spartacus, risolve le dipendenze tra feature con `analyzeCrossFeatureDependencies` ed esegue in catena `analyzeApplication`, `addFeatures`, `addPackageJsonDependenciesForLibrary(peerDependencies, ...)` e `finalizeInstallation` (`feature-libs/asm/schematics/add-asm/index.ts:L25-L43`); è registrata sia come `ng-add` sia come `add` (`feature-libs/asm/schematics/collection.json:L4-L16`). Lo spec copre l'installazione senza feature, il lazy loading, l'assenza dei moduli dipendenti generati, gli stili e l'eager loading (`feature-libs/asm/schematics/add-asm/index_spec.ts:L41-L134`). Negli stili, `$asm-components-allowlist` contiene sei selettori ripetuti due volte (`cx-asm-toggle-ui`, `cx-csagent-login-form`, `cx-customer-emulation`, `cx-customer-selection`, `cx-dot-spinner`, `cx-customer-list`) (`feature-libs/asm/styles/components/_index.scss:L17-L24`): il loop `@each` emette quindi due volte lo stesso `@extend`, senza effetti visibili (Sass deduplica l'estensione). ⚠️ DA VERIFICARE: deduplicazione non verificata compilando, `node_modules` assente.
 
 ### 3.16 Installazione via schematics e stili
 

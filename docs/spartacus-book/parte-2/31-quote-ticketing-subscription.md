@@ -155,52 +155,6 @@ Prerequisiti utili: [25 — Cart](../parte-2/25-cart.md) (active cart, multi-car
 | `feature-libs/subscription-billing/styles/product/_subscription-product-price.scss` | Placeholder `%cx-subscription-product-price`. |
 | `feature-libs/subscription-billing/styles/product/_subscription-product-usage-charge.scss` | Placeholder `%cx-subscription-product-usage-charge`. |
 
-### File aggiuntivi
-
-| Path | Ruolo |
-|---|---|
-| `feature-libs/quote/public_api.ts` | Entry `@spartacus/quote`: riferimento triple-slash a `types.d.ts` (per `@HostListener` con eventi tipo `keydown.Escape`) + riesportazione di `quote.module` (`:L14-L19`). |
-| `feature-libs/quote/schematics/add-quote/index.ts` | `addQuoteFeatures()`: factory degli schematics `ng-add`/`add` di `@spartacus/quote` (vedi 3.12). |
-| `feature-libs/quote/schematics/add-quote/index_spec.ts` | Test dello schematic, incluso il controllo che la configurazione b2b venga aggiunta. |
-| `feature-libs/quote/schematics/constants.ts` | Costanti schematics (`QUOTE_FOLDER_NAME`, `QUOTE_TRANSLATIONS`, ...), duplicate di quelle in core-libs schematics (vedi 3.12). |
-| `feature-libs/quote/vitest.config.ts` | Config Vitest: jsdom, pool `forks`, alias per mock feature directive e `url-testing.module`, coverage 85/65. |
-| `feature-libs/quote/_index.scss` | Entry SCSS: core + app Spartacus, mixin locale `visible-focus`, poi `styles/index`. |
-| `feature-libs/quote/styles/_index.scss` | Importa mixin, 12 file componente e layout; `$quote-components-allowlist` con `@extend`. |
-| `feature-libs/quote/styles/_quote-comments.scss` | Placeholder `%cx-quote-comments`. |
-| `feature-libs/quote/styles/_quote-confirm-dialog.scss` | Placeholder `%cx-quote-confirm-dialog`. |
-| `feature-libs/quote/styles/_quote-header-buyer-edit.scss` | Placeholder `%cx-quote-header-buyer-edit` (importa lo stile card). |
-| `feature-libs/quote/styles/_quote-header-overview.scss` | Placeholder `%cx-quote-header-overview` + regole RTL. |
-| `feature-libs/quote/styles/_quote-items.scss` | Placeholder `%cx-quote-items`. |
-| `feature-libs/quote/styles/_quote-links.scss` | Placeholder `%cx-quote-links` + regole LTR/RTL. |
-| `feature-libs/quote/styles/_quote-list.scss` | Placeholder `%cx-quote-list` + regole LTR/RTL. |
-| `feature-libs/quote/styles/_quote-request-button.scss` | Placeholder `%cx-quote-request-button`. |
-| `feature-libs/quote/styles/_quote-summary-actions.scss` | Placeholder `%cx-quote-summary-actions`. |
-| `feature-libs/quote/styles/_quote-summary-prices.scss` | Placeholder `%cx-quote-summary-prices`. |
-| `feature-libs/quote/styles/_quote-summary-seller-edit.scss` | Placeholder `%cx-quote-summary-seller-edit`. |
-| `feature-libs/quote/styles/_quote-summary.scss` | Placeholder `%cx-quote-summary`. |
-| `feature-libs/quote/styles/layout/_index.scss` | Allowlist/blocklist del page template `QuoteDetailsPageTemplate` (variabili con suffisso `-store-finder`, vedi 3.12). |
-| `feature-libs/quote/styles/layout/_quote-details-page.scss` | Placeholder `%QuoteDetailsPageTemplate`: flex 70/30 tra `BodyContent` e `CenterRightContent`. |
-| `feature-libs/quote/styles/mixins/_mixins.scss` | Importa i due mixin sotto. |
-| `feature-libs/quote/styles/mixins/_ghost-bar.scss` | Mixin `cx-ghost-bar`. |
-| `feature-libs/quote/styles/mixins/_quote-toggle.scss` | Mixin `cx-quote-toggle`. |
-| `feature-libs/customer-ticketing/_index.scss` | Entry SCSS: core + blocco `modal` di cxbase + `styles/index`. |
-| `feature-libs/customer-ticketing/vitest.config.ts` | Config Vitest: alias `@spartacus/core/testing/mock-feature-toggles`, coverage 85/65. |
-| `feature-libs/subscription-billing/public_api.ts` | Entry `@spartacus/subscription-billing`: riesporta `subscription-billing.module` (il commento dice "segment", residuo di copia). |
-| `feature-libs/subscription-billing/assets/public_api.ts` | Entry assets: riesporta `translations/translations`. |
-| `feature-libs/subscription-billing/vitest.config.ts` | Config Vitest senza alias, coverage 85/65. |
-| `feature-libs/subscription-billing/_index.scss` | Entry SCSS: importa solo `styles/index`. |
-| `feature-libs/subscription-billing/styles/_index.scss` | Importa core + 10 file componente; `$subscription-billing-components-allowlist` con `@extend`. |
-| `feature-libs/subscription-billing/styles/billing-details/_subscription-billing-details.scss` | Placeholder `%cx-subscription-billing-details`. |
-| `feature-libs/subscription-billing/styles/cart/_subscription-cart-item-list.scss` | Placeholder `%cx-subscription-cart-item-list`. |
-| `feature-libs/subscription-billing/styles/cart/_subscription-cart-price-body.scss` | Placeholder `%cx-subscription-cart-price-body` (outlet carrello eager). |
-| `feature-libs/subscription-billing/styles/details/_subscription-details.scss` | Placeholder `%cx-subscription-details`. |
-| `feature-libs/subscription-billing/styles/list/_billing-list.scss` | Placeholder `%cx-billing-list`. |
-| `feature-libs/subscription-billing/styles/list/_date-range-modal.scss` | Placeholder `%cx-date-range-modal`. |
-| `feature-libs/subscription-billing/styles/list/_subscription-list.scss` | Placeholder `%cx-subscription-list` (e regole condivise con `%cx-subscription-details`). |
-| `feature-libs/subscription-billing/styles/modal/_subscription-modal.scss` | Placeholder `%cx-subscription-actions-modal`. |
-| `feature-libs/subscription-billing/styles/product/_subscription-product-price.scss` | Placeholder `%cx-subscription-product-price`. |
-| `feature-libs/subscription-billing/styles/product/_subscription-product-usage-charge.scss` | Placeholder `%cx-subscription-product-usage-charge`. |
-
 ## 3. Come funziona passo per passo
 
 ### 3.1 Quote: packaging in tre chunk
@@ -350,12 +304,6 @@ Dieci endpoint di default; `getQuote` chiede `FULL,expirationTime`, i prezzi for
 **OCC.** Gli adapter non usano converter: restituiscono il JSON tipizzato normalizzando solo gli errori (`feature-libs/subscription-billing/occ/adapters/occ-subscription.adapter.ts:L36-L40`). L'estensione invia `{ numberOfBillingCycles, unlimited }` (`feature-libs/subscription-billing/occ/adapters/occ-subscription-actions.adapter.ts:L120-L153`); `reverseCancellation` fa POST con body `null` e Content-Type JSON (`feature-libs/subscription-billing/occ/adapters/occ-subscription-actions.adapter.ts:L98-L101`); il filtro bill va nel query param `filters` (`feature-libs/subscription-billing/occ/adapters/occ-subscription-billing.adapter.ts:L37-L47`).
 
 **Componenti.** `SubscriptionDetailsComponent` forza il reload all'init e apre il dialog con `openDialogAndSubscribe(SUBSCRIPTION_ACTION_CONFIRMATION, ...)` passando subscription, `code` e `mode` (`feature-libs/subscription-billing/components/details/subscription-details.component.ts:L51-L73`); il dialog è `inlineRoot` (`feature-libs/subscription-billing/components/actions-modal/subscription-actions-popup.config.ts:L12-L20`). `SubscriptionActionsModalComponent` usa signals (`mode` default `'cancel'`, `feature-libs/subscription-billing/components/actions-modal/subscription-actions-modal.component.ts:L67-L92`), un `effect` che in modalità cancel richiede subito la data effettiva (`feature-libs/subscription-billing/components/actions-modal/subscription-actions-modal.component.ts:L120-L140`) e una mappa di handler per mode in `onConfirm` (`feature-libs/subscription-billing/components/actions-modal/subscription-actions-modal.component.ts:L174-L254`). Successo: close + `GetSubscriptionByCodeReloadEvent` + conferma; errore: close(`'error'`) + `subscriptionActions.unknownError` (`feature-libs/subscription-billing/components/actions-modal/subscription-actions-modal-component.service.ts:L23-L59`). La lista bill riceve il range date dal `dialogClose` del `DateRangeModalComponent` (`feature-libs/subscription-billing/components/list/billing/subscription-billing-list.component.ts:L77-L90`, `feature-libs/subscription-billing/components/list/billing/date-range-modal/date-range-modal.component.ts:L85-L94`) e lo serializza come `startAt:%s:endAt:%s` (`feature-libs/subscription-billing/components/list/billing/subscription-billing-list.component.ts:L64-L64`).
-
-### 3.12 Installazione via schematics, costanti e stili
-
-`addQuoteFeatures()` valida l'installazione, risolve le dipendenze tra feature ed esegue in catena `analyzeApplication`, `addFeatures`, `addPackageJsonDependenciesForLibrary(peerDependencies, ...)` e `finalizeInstallation` (`feature-libs/quote/schematics/add-quote/index.ts:L25-L43`), registrata come `ng-add` e `add` (`feature-libs/quote/schematics/collection.json:L4-L16`). Lo spec controlla con snapshot che il modulo di configurazione riceva le feature b2b (`feature-libs/quote/schematics/add-quote/index_spec.ts:L115-L122`), coerente con la config schematics della quote. Le costanti di `feature-libs/quote/schematics/constants.ts:L9-L17` replicano nomi già definiti in core-libs (`core-libs/schematics/src/shared/lib-configs/quote-schematics-config.ts:L21-L33`, `core-libs/schematics/src/shared/libs-constants.ts:L237-L238`), e nessun file di `feature-libs/quote` le importa: la fonte effettiva è quella di core-libs.
-
-Negli stili quote, il page template usa variabili chiamate `$page-template-allowlist-store-finder` / `$page-template-blocklist-store-finder` pur riferendosi a `QuoteDetailsPageTemplate` (`feature-libs/quote/styles/layout/_index.scss:L5-L17`): per escludere il template va sovrascritta la variabile con suffisso `-store-finder`. Il mixin `visible-focus` è definito localmente nell'entry SCSS prima di importare gli stili (`feature-libs/quote/_index.scss:L4-L12`). Le tre `vitest.config.ts` hanno la stessa struttura (jsdom, pool `forks`, coverage v8 con soglie 85/85/65/85) e differiscono solo negli alias (`feature-libs/quote/vitest.config.ts:L16-L21`, `feature-libs/customer-ticketing/vitest.config.ts:L16-L20`, `feature-libs/subscription-billing/vitest.config.ts:L11-L23`).
 
 ### 3.12 Installazione via schematics, costanti e stili
 
