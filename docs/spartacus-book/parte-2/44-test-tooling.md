@@ -23,7 +23,7 @@ Capitoli collegati: l'engine SSR verificato dagli E2E SSR è in [39 — SSR otti
 
 | Path | Ruolo |
 |---|---|
-| `ci-scripts/unit-tests.sh` | dispatcher dei tre runner unit (`TEST_RUNNER`, `UNIT_TEST_GROUP_PROJECTS`, modalità affected) |
+| `ci-scripts/unit-tests.sh` | dispatcher dei tre runner unit (`$TEST_RUNNER`, `$UNIT_TEST_GROUP_PROJECTS`, modalità affected) |
 | `ci-scripts/compute-unit-shards.sh` | costruisce la matrice GitHub Actions degli shard (Karma/Jest/Vitest) |
 | `ci-scripts/shard-lib.sh` | funzioni condivise: enumerazione progetti via `nx show projects`, peso per righe di spec, partizione LPT |
 | `.github/actions/prepare-unit-shards/action.yml` | action composita che pubblica la matrice come output |
@@ -154,7 +154,7 @@ Le istruzioni di progetto chiedono di preferire `firstValueFrom` alle subscripti
 4. Ogni progetto riceve un peso: il numero di righe "significative" dei suoi `*.spec.ts`, cioè escludendo import, commenti `//` e righe vuote, con minimo 1 (`ci-scripts/shard-lib.sh:L30-L48`).
 5. `shard_partition` applica un greedy LPT (longest processing time): ordina per peso decrescente e assegna ogni progetto al bucket meno carico (`ci-scripts/shard-lib.sh:L56-L71`).
 6. `matrix_legs` produce voci `{test-runner, shard-name: "<runner>-i/n", projects}` ed elimina i bucket vuoti (`ci-scripts/compute-unit-shards.sh:L34-L47`). In modalità run-all una matrice vuota è un errore (`ci-scripts/compute-unit-shards.sh:L57-L61`).
-7. Ogni leg della matrice esegue `ci-scripts/unit-tests.sh` con `TEST_RUNNER` e `UNIT_TEST_GROUP_PROJECTS` impostati (`.github/workflows/ci-continuous-integration.yml:L59-L81`).
+7. Ogni leg della matrice esegue `ci-scripts/unit-tests.sh` con `$TEST_RUNNER` e `$UNIT_TEST_GROUP_PROJECTS` impostati (`.github/workflows/ci-continuous-integration.yml:L59-L81`).
 8. `unit-tests.sh`, con la variabile valorizzata, chiama `run_all_unit_tests` (`ci-scripts/unit-tests.sh:L108-L109`), che smista sul runner (`ci-scripts/unit-tests.sh:L88-L106`):
    - `karma` → `nx run-many --target=test ... -- --no-watch --source-map --code-coverage --browsers ChromeHeadless` (`ci-scripts/unit-tests.sh:L30-L42`);
    - `jest` → `nx run-many --target=test-jest ... -- --coverage --runInBand` (`ci-scripts/unit-tests.sh:L44-L56`);
@@ -212,7 +212,7 @@ La distribuzione a11y senza recording è round-robin: file in ordine alfabetico,
 1. verifica che `projects/storefrontapp/tsconfig.app.prod.json` **non** contenga `core-libs/storefront/public_api`, perché la build prod deve usare `dist` (`ci-scripts/validate-lint.sh:L11-L30`);
 2. fallisce se trova `fdescribe(`, `describe.only(`, `fit(` o `it.only(` in un `*spec.ts` di `projects`, `feature-libs`, `integration-libs`, `core-libs` (`ci-scripts/validate-lint.sh:L32-L70`);
 3. fallisce se storefrontlib importa se stessa (`from 'storefrontlib'`) (`ci-scripts/validate-lint.sh:L72-L80`);
-4. stylelint → ESLint via nx (`affected` se `LINT_AFFECTED=true`, altrimenti `run-many --all`; `LINT_PARALLEL` default 3; heap 3584 MB) → prettier → i18n-lint (`ci-scripts/validate-lint.sh:L82-L109`).
+4. stylelint → ESLint via nx (`affected` se `LINT_AFFECTED=true`, altrimenti `run-many --all`; `$LINT_PARALLEL` default 3; heap 3584 MB) → prettier → i18n-lint (`ci-scripts/validate-lint.sh:L82-L109`).
 
 Gli script root corrispondenti sono `lint`, `lint:styles`, `prettier` (`--list-different`) e `i18n-lint`, che controlla gli attributi `alt,title,placeholder,aria-label` negli HTML (`package.json:L128-L131`).
 
@@ -283,12 +283,12 @@ Riferimenti dei nodi: `.github/workflows/ci-continuous-integration.yml:L51-L81`,
 
 ```mermaid
 sequenceDiagram
-  participant J as "Jest (ssr-testing.spec.ts)"
-  participant G as "globalSetup validateSsrBuild"
-  participant S as "Server SSR :4000 (serve:ssr)"
-  participant P as "Proxy http-proxy :9002"
-  participant B as "Backend OCC (CX_BASE_URL dev/ci)"
-  participant L as ".ssr.log"
+  participant J as Jest (ssr-testing.spec.ts)
+  participant G as globalSetup validateSsrBuild
+  participant S as Server SSR porta 4000 (serve:ssr)
+  participant P as Proxy http-proxy porta 9002
+  participant B as Backend OCC (CX_BASE_URL dev o ci)
+  participant L as File .ssr.log
   J->>G: avvio suite
   G->>G: server.mjs esiste? marker proxy? niente ngDevMode? porta 4000 libera?
   J->>L: clearSsrLogFile()
@@ -847,14 +847,14 @@ if (options.generateDeps) {
 
 | Chiave | Tipo | Default | Definita in | Letta in |
 |---|---|---|---|---|
-| `TEST_RUNNER` (env) | `karma\|jest\|vitest\|""` | `""` (tutti e tre) | `ci-scripts/unit-tests.sh:L12-L12`; valorizzata dalla matrice in `.github/workflows/ci-continuous-integration.yml:L67-L69` | `ci-scripts/unit-tests.sh:L89-L104` |
-| `UNIT_TEST_GROUP_PROJECTS` (env) | lista CSV | vuota | matrice in `.github/workflows/ci-continuous-integration.yml:L67-L69` | `ci-scripts/unit-tests.sh:L31-L31`, `ci-scripts/unit-tests.sh:L108-L108` |
-| `KARMA_SHARDS` / `JEST_SHARDS` / `VITEST_SHARDS` | int | 2 / 4 / 4 | `ci-scripts/compute-unit-shards.sh:L9-L11`, `.github/actions/prepare-unit-shards/action.yml:L11-L22` | `ci-scripts/compute-unit-shards.sh:L49-L51` |
-| `AFFECTED` | `"true"\|"false"` | `false` | `ci-scripts/compute-unit-shards.sh:L12-L12` | `ci-scripts/compute-unit-shards.sh:L14-L17`, `ci-scripts/compute-unit-shards.sh:L57-L57` |
-| `LINT_AFFECTED` | stringa bool | vuota | `.github/workflows/ci-continuous-integration.yml:L121-L121` | `ci-scripts/validate-lint.sh:L87-L87` |
-| `LINT_PARALLEL` | int | 3 (PR CI: 4) | `ci-scripts/validate-lint.sh:L85-L85`, `.github/workflows/ci-continuous-integration.yml:L122-L122` | `ci-scripts/validate-lint.sh:L87-L93` |
-| `NX_BUILD_PARALLEL` | int | 3 | `ci-scripts/npm-commands.sh:L15-L15` | `ci-scripts/npm-commands.sh:L34-L37` |
-| `ENABLE_A11Y_RECORDING` | stringa bool | `false` (CI: `true`) | `ci-scripts/e2e-a11y-helpers.sh:L37-L37`, `.github/workflows/ci.yml:L297-L297` | `ci-scripts/e2e-a11y-helpers.sh:L78-L78` |
+| `$TEST_RUNNER` (env) | `karma\|jest\|vitest\|""` | `""` (tutti e tre) | `ci-scripts/unit-tests.sh:L12-L12`; valorizzata dalla matrice in `.github/workflows/ci-continuous-integration.yml:L67-L69` | `ci-scripts/unit-tests.sh:L89-L104` |
+| `$UNIT_TEST_GROUP_PROJECTS` (env) | lista CSV | vuota | matrice in `.github/workflows/ci-continuous-integration.yml:L67-L69` | `ci-scripts/unit-tests.sh:L31-L31`, `ci-scripts/unit-tests.sh:L108-L108` |
+| `$KARMA_SHARDS` / `$JEST_SHARDS` / `$VITEST_SHARDS` | int | 2 / 4 / 4 | `ci-scripts/compute-unit-shards.sh:L9-L11`, `.github/actions/prepare-unit-shards/action.yml:L11-L22` | `ci-scripts/compute-unit-shards.sh:L49-L51` |
+| `$AFFECTED` | `"true"\|"false"` | `false` | `ci-scripts/compute-unit-shards.sh:L12-L12` | `ci-scripts/compute-unit-shards.sh:L14-L17`, `ci-scripts/compute-unit-shards.sh:L57-L57` |
+| `$LINT_AFFECTED` | stringa bool | vuota | `.github/workflows/ci-continuous-integration.yml:L121-L121` | `ci-scripts/validate-lint.sh:L87-L87` |
+| `$LINT_PARALLEL` | int | 3 (PR CI: 4) | `ci-scripts/validate-lint.sh:L85-L85`, `.github/workflows/ci-continuous-integration.yml:L122-L122` | `ci-scripts/validate-lint.sh:L87-L93` |
+| `$NX_BUILD_PARALLEL` | int | 3 | `ci-scripts/npm-commands.sh:L15-L15` | `ci-scripts/npm-commands.sh:L34-L37` |
+| `$ENABLE_A11Y_RECORDING` | stringa bool | `false` (CI: `true`) | `ci-scripts/e2e-a11y-helpers.sh:L37-L37`, `.github/workflows/ci.yml:L297-L297` | `ci-scripts/e2e-a11y-helpers.sh:L78-L78` |
 | `CYPRESS_SPEC_OVERRIDE` | glob/CSV | glob a11y | `ci-scripts/e2e-a11y-helpers.sh:L105-L105` | `projects/storefrontapp-e2e-cypress/package.json:L26-L27` |
 | Vitest `test.pool` / `environment` / `globals` | string/bool | `forks` / `jsdom` / `true` | `core-libs/core/vitest.config.ts:L15-L19` | Vitest |
 | Vitest `test.restoreMocks` | bool | `true` in core, storefront, user, cdc; assente altrove (es. asm) | `core-libs/core/vitest.config.ts:L18-L18`, `core-libs/storefront/vitest.config.ts:L39-L39` | Vitest |
@@ -948,11 +948,11 @@ Ricette pertinenti della Parte III:
 ## 9. Trappole, casi limite, comportamenti controintuitivi
 
 1. **`test.ts` orfano in core.** `core-libs/core/src/test.ts` dichiara di servire `karma.conf.js`, ma `core` non ha più né target `test` né `karma.conf.js`. Il file sopravvive solo come esclusione in `tsconfig.lib.json` (`core-libs/core/project.json:L7-L36`, `core-libs/core/tsconfig.lib.json:L24-L24`). Dice anche "Has to be imported just after zone.js imports" senza importare zone.js (`core-libs/core/src/test.ts:L11-L14`).
-2. **Il commento di `TEST_RUNNER` mente.** Dice "karma -> Jasmine/Karma (+ Jest schematics)", ma il `case` ha un ramo `jest` separato e il ramo `karma` non lancia Jest (`ci-scripts/unit-tests.sh:L9-L9`, `ci-scripts/unit-tests.sh:L90-L95`).
-3. **Ramo affected irraggiungibile in CI.** La matrice valorizza sempre `UNIT_TEST_GROUP_PROJECTS`, quindi `run_affected_unit_tests` di `unit-tests.sh` non viene mai eseguito: l'affected è gestito a monte in `compute-unit-shards.sh` (`ci-scripts/unit-tests.sh:L108-L115`, `.github/workflows/ci-continuous-integration.yml:L69-L69`). Fuori dalla CI lo script resta usabile da solo.
+2. **Il commento di `$TEST_RUNNER` mente.** Dice "karma -> Jasmine/Karma (+ Jest schematics)", ma il `case` ha un ramo `jest` separato e il ramo `karma` non lancia Jest (`ci-scripts/unit-tests.sh:L9-L9`, `ci-scripts/unit-tests.sh:L90-L95`).
+3. **Ramo affected irraggiungibile in CI.** La matrice valorizza sempre `$UNIT_TEST_GROUP_PROJECTS`, quindi `run_affected_unit_tests` di `unit-tests.sh` non viene mai eseguito: l'affected è gestito a monte in `compute-unit-shards.sh` (`ci-scripts/unit-tests.sh:L108-L115`, `.github/workflows/ci-continuous-integration.yml:L69-L69`). Fuori dalla CI lo script resta usabile da solo.
 4. **`eslint-rules` nella shard "Karma".** Ha un target `test` (executor `@nx/jest:jest`), quindi rientra tra i progetti enumerati per `test` e riceve gli argomenti Karma (`--no-watch --browsers ChromeHeadless ...`) (`tools/eslint-rules/project.json:L7-L14`, `ci-scripts/compute-unit-shards.sh:L22-L25`). ⚠️ DA VERIFICARE l'effetto reale: senza `node_modules` non si può eseguire nx.
 5. **Script npm e istruzioni obsoleti.** `test:libs` mescola `nx test-vitest` e `nx test <lib> --code-coverage` per lib già migrate (`cdc`, `s4-service`, `cdp`, `digital-payments`, `cpq-quote`) e per `setup`, che non hanno target `test` (`package.json:L147-L147`, `integration-libs/cdc/project.json:L20-L27`, `core-libs/setup/project.json:L20-L26`). Lo stesso vale per `test:storefront:lib` (`nx test storefrontlib`) (`package.json:L148-L148`, `core-libs/storefront/project.json:L21-L27`) e per le istruzioni di progetto, che citano ancora `nx run storefrontlib:test` (`.claude/CLAUDE.md:L26-L41`). Il comando giusto è `nx test-vitest <lib>` oppure `npx vitest run --config <lib>/vitest.config.ts <spec>`.
-6. **`nx test ssr-tests`.** `test:ssr` invoca il target `test`, ma `ssr-tests` definisce solo `lint` e `test-jest`, `nx.json` non ha un default `test` e l'inferenza è spenta (`package.json:L156-L157`, `projects/ssr-tests/project.json:L6-L20`, `nx.json:L22-L22`). In CI però il job usa `test_ssr` → `npm run test:ssr:ci` (`ci-scripts/npm-commands.sh:L45-L60`). ⚠️ DA VERIFICARE come nx risolva il target: non è eseguibile staticamente.
+6. **`nx test ssr-tests`.** `test:ssr` invoca il target `test`, ma `ssr-tests` definisce solo `lint` e `test-jest`, `nx.json` non ha un default `test` e l'inferenza è spenta (`package.json:L156-L157`, `projects/ssr-tests/project.json:L6-L20`, `nx.json:L22-L22`). Anche il job CI passa di lì: `test_ssr` → `npm run test:ssr:ci` → `nx test ssr-tests` (`ci-scripts/npm-commands.sh:L45-L60`, `package.json:L157-L157`). ⚠️ DA VERIFICARE come nx risolva il target: non è eseguibile staticamente.
 7. **Cache nx solo per `test`.** `nx.json` mette in cache `test` ma non `test-vitest`/`test-jest`, che sono `nx:run-commands` senza `targetDefaults`. Salvo config per progetto (non trovata in core e storefront), i run Vitest/Jest non sono cacheati (`nx.json:L13-L15`, `core-libs/core/project.json:L20-L26`).
 8. **`restoreMocks` non uniforme.** È presente solo in 4 dei 32 `vitest.config.ts` (core, storefront, user, cdc); manca ad esempio in `asm` (`core-libs/core/vitest.config.ts:L18-L18`, `feature-libs/asm/vitest.config.ts:L21-L28`). In una lib senza `restoreMocks` uno `vi.spyOn` che non viene ripristinato può influenzare i test successivi dello stesso file: di qui la regola di progetto sul reset in `afterEach` (`.claude/CLAUDE.md:L37-L41`).
 9. **Esclusioni di coverage sbagliate in core.** La config esclude `'../../testing/setup-test.ts'`, che non esiste (il file reale è `setup-vitest.ts`), e `textfield/root/**`, cartella che non appartiene a core (`core-libs/core/vitest.config.ts:L41-L42`).
@@ -969,12 +969,12 @@ Ricette pertinenti della Parte III:
 20. **Timeout "lungo" uguale al default.** Il `describe` "With long SSR request timeout" passa `timeout: 20_000`, che coincide con `DEFAULT_SSR_TIMEOUT` (`projects/ssr-tests/src/ssr-testing.spec.ts:L85-L90`, `projects/ssr-tests/src/utils/ssr.utils.ts:L17-L17`).
 21. **Consigli di build divergenti.** L'errore del `globalSetup` suggerisce `npm run build && ...`, il README `npm run build:libs && ...` (`projects/ssr-tests/validate-ssr-build.ts:L63-L65`, `projects/ssr-tests/README.md:L7-L7`).
 22. **`moduleNameMapper` vuoto in ssr-tests.** `jest.config.js` legge `compilerOptions.paths` dal proprio `tsconfig.json`, che non li definisce: li erediterebbe via `extends`, ma `require` non risolve `extends` (`projects/ssr-tests/jest.config.js:L1-L8`, `projects/ssr-tests/tsconfig.json:L1-L23`).
-23. **Falsi positivi e negativi in `validate-lint.sh`.** Il grep `'fit('` colpisce anche identificatori che finiscono in "fit(" come `benefit(` (`ci-scripts/validate-lint.sh:L53-L53`). Il check prettier fallisce solo se l'**ultima** riga di output contiene `projects`, quindi un file non formattato fuori da `projects/` in ultima posizione passa (`ci-scripts/validate-lint.sh:L98-L99`). Il messaggio di `validateTsConfigFile` usa `LOCAL_ENV_LIB_PATH`, definita dopo la funzione: funziona solo per l'ordine di esecuzione (`ci-scripts/validate-lint.sh:L15-L15`, `ci-scripts/validate-lint.sh:L28-L30`).
+23. **Falsi positivi e negativi in `validate-lint.sh`.** Il grep `'fit('` colpisce anche identificatori che finiscono in "fit(" come `benefit(` (`ci-scripts/validate-lint.sh:L53-L53`). Il check prettier fallisce solo se l'**ultima** riga di output contiene `projects`, quindi un file non formattato fuori da `projects/` in ultima posizione passa (`ci-scripts/validate-lint.sh:L98-L99`). Il messaggio di `validateTsConfigFile` usa `$LOCAL_ENV_LIB_PATH`, definita dopo la funzione: funziona solo per l'ordine di esecuzione (`ci-scripts/validate-lint.sh:L15-L15`, `ci-scripts/validate-lint.sh:L28-L30`).
 24. **ESLint cieco su Cypress e Vitest config.** `projects/storefrontapp-e2e-cypress/**` e tutti i `vitest.config.ts` sono ignorati (`eslint.config.mjs:L21-L26`).
 25. **Glob Cypress "full" senza i core.** Il pattern `--spec "...*.e2e.cy.ts"` (es. `cy:run:ci`) non corrisponde ai file `*.core-e2e.cy.ts`, perché prima di `e2e` c'è `-` invece di `.`. La suite "full" quindi non include gli spec core, mentre `cy:run:ci:b2b` usa `*e2e.cy.ts` e li include (`projects/storefrontapp-e2e-cypress/package.json:L24-L24`, `projects/storefrontapp-e2e-cypress/package.json:L30-L30`, `projects/storefrontapp-e2e-cypress/package.json:L36-L36`). ⚠️ DA VERIFICARE se sia intenzionale: dipende dal processo del team.
 26. **Script Cypress del layout < 10.** `cy:run:ci:cdc-b2b` e `cy:run:ci:vendor:cdc-b2b` usano `--config-file cypress.ci.json` e `cypress/integration/...` (`projects/storefrontapp-e2e-cypress/package.json:L40-L40`, `projects/storefrontapp-e2e-cypress/package.json:L52-L52`).
 27. **a11y: recording contro round-robin.** Con `ENABLE_A11Y_RECORDING: true`, impostato in `ci.yml`, ogni container lancia l'intera suite a11y affidandosi a `--parallel` della Dashboard; `test-distribution.sh` si usa solo senza recording (`.github/workflows/ci.yml:L297-L298`, `ci-scripts/e2e-a11y-helpers.sh:L78-L90`). Anche con `--skip-build`, la parte B2B ribuilda l'app (`ci-scripts/e2e-a11y-helpers.sh:L47-L52`, `ci-scripts/e2e-a11y-helpers.sh:L114-L115`). Per la suite a11y lo script forza `SPA_ENV='ci,b2c'`, sovrascrivendo quello del job (`ci-scripts/e2e-cypress.sh:L78-L80`).
-28. **`RUN_E2E` solo su PR.** `validate-e2e-execution.sh` imposta `RUN_E2E` solo se `GITHUB_BASE_REF` è valorizzata; su `push` resta `false`, e i job e2e di `ci.yml` partono comunque grazie alla condizione `github.event_name == 'push'` (`ci-scripts/validate-e2e-execution.sh:L5-L7`, `.github/workflows/ci.yml:L122-L122`).
+28. **`$RUN_E2E` solo su PR.** `validate-e2e-execution.sh` imposta `$RUN_E2E` solo se `$GITHUB_BASE_REF` è valorizzata; su `push` resta `false`, e i job e2e di `ci.yml` partono comunque grazie alla condizione `github.event_name == 'push'` (`ci-scripts/validate-e2e-execution.sh:L5-L7`, `.github/workflows/ci.yml:L122-L122`).
 29. **Versioni divergenti nei tool.** Il `package.json` root dice `2612.0.0`, `PUBLISHING_VERSION` dice `221121.22.0`, `tools/breaking-changes` usa `NEW_VERSION = '221121_7'` e il suo readme cita `'2211.19'` (`package.json:L3-L3`, `tools/config/const.ts:L13-L13`, `tools/breaking-changes/common.ts:L12-L12`, `tools/breaking-changes/readme.md:L10-L10`). Il commento di `tsconfig-paths.ts` cita inoltre `ts-node ./tools/tsconfig-paths/index.ts`, path inesistente: l'entry reale è `tools/config/index.ts` (`tools/config/tsconfig-paths.ts:L15-L15`, `package.json:L63-L63`).
 
 ## 10. Come fare debug
