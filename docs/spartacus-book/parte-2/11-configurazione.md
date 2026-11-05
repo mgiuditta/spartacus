@@ -13,7 +13,7 @@ In Spartacus quasi ogni comportamento è guidato dalla configurazione: l'URL del
    - dopo il bootstrap, con la "config unificata" di `ConfigurationService`, che raccoglie i chunk dichiarati nei moduli caricati in lazy loading — `core-libs/core/src/config/services/configuration.service.ts:L57-L106`.
 4. **Come si segnala una config sbagliata?** Con i `ConfigValidator`, funzioni che restituiscono un messaggio e vengono eseguite solo in dev mode — `core-libs/core/src/config/config-validator/config-validator.module.ts:L23-L37`.
 
-Il punto di design centrale è la separazione tra **default** (librerie) e **root** (applicazione): qualsiasi `ConfigChunk` vince su qualsiasi `DefaultConfigChunk`, indipendentemente dall'ordine di import, perché i due insiemi vengono fusi separatamente e poi combinati con il root per ultimo — `core-libs/core/src/config/config-tokens.ts:L10-L12`. Il JSDoc lo dice in chiaro: "General rule is, that all config provided in libraries should be provided as default config" — `core-libs/core/src/config/config-tokens.ts:L58-L58`. Una regola ESLint di workspace lo impone sul codice del monorepo — `tools/eslint-rules/rules/use-provide-default-config.ts:L22-L49`.
+Il punto di design centrale è la separazione tra **default** (librerie) e **root** (applicazione): qualsiasi `ConfigChunk` vince su qualsiasi `DefaultConfigChunk`, indipendentemente dall'ordine di import, perché i due insiemi vengono fusi separatamente e poi combinati con il root per ultimo — `core-libs/core/src/config/config-tokens.ts:L10-L12`. Il JSDoc lo dice in chiaro: "General rule is, that all config provided in libraries should be provided as default config" — `core-libs/core/src/config/config-tokens.ts:L58-L58`. Una regola ESLint di workspace lo impone sui file `**/*.module.ts` del monorepo (non sull'app demo) — `tools/eslint-rules/rules/use-provide-default-config.ts:L22-L49`, `eslint.config.mjs:L231-L239`, `projects/storefrontapp/eslint.config.mjs:L12-L13`.
 
 Questo capitolo presuppone i concetti di DI Angular (multi provider, `InjectionToken` con `providedIn`, `inject()`) trattati in [01 — Dependency Injection](../parte-1/01-dependency-injection.md), e si collega all'ordine di bootstrap descritto in [10 — Bootstrap e ordine di inizializzazione](10-bootstrap-inizializzazione.md).
 
@@ -52,7 +52,7 @@ File correlati fuori dalla cartella, citati nel capitolo:
 | `core-libs/core/src/lazy-loading/lazy-modules.service.ts` | `LazyModulesService.modules$`: stream dei moduli lazy istanziati |
 | `core-libs/core/src/site-context/site-context.module.ts` | Esempio di `CONFIG_INITIALIZER` condizionale e di validator |
 | `core-libs/core/src/i18n/i18n.module.ts` | Altro `CONFIG_INITIALIZER` condizionale |
-| `tools/eslint-rules/rules/use-provide-default-config.ts` | Regola lint che vieta `provideConfig()` nelle librerie |
+| `tools/eslint-rules/rules/use-provide-default-config.ts` | Regola lint che vieta `provideConfig()` (attiva come `error` solo sui file `**/*.module.ts`) |
 
 ## 3. Come funziona passo per passo
 
@@ -87,7 +87,7 @@ I quattro helper sono semplici costruttori di provider multi:
 
 Il tipo della factory è `ConfigFactory`, una funzione con argomenti arbitrari che restituisce `Config` — `core-libs/core/src/config/config-factory.ts:L7-L9`. Gli argomenti arrivano da `deps` secondo la semantica classica di `FactoryProvider`; in alternativa la factory può usare `inject()` perché è eseguita in injection context (come fa `TestConfigModule`, `core-libs/core/src/config/test-config.module.ts:L99-L102`).
 
-Il JSDoc di `provideConfig` ricorda che nelle librerie va usato `provideDefaultConfig` — `core-libs/core/src/config/config-providers.ts:L11-L17` — e le due regole ESLint `use-provide-default-config` e `use-provide-default-config-factory` segnalano ogni `CallExpression` di `provideConfig()`/`provideConfigFactory()` nel monorepo — `tools/eslint-rules/rules/use-provide-default-config.ts:L22-L49`, `tools/eslint-rules/rules/use-provide-default-config-factory.ts:L22-L46`. L'app demo invece, da "consumer", usa `provideConfig` per backend, routing e `features.level` — `projects/storefrontapp/src/app/private/private.providers.ts:L19-L50`.
+Il JSDoc di `provideConfig` ricorda che nelle librerie va usato `provideDefaultConfig` — `core-libs/core/src/config/config-providers.ts:L11-L17` — e le due regole ESLint `use-provide-default-config` e `use-provide-default-config-factory` segnalano ogni `CallExpression` di `provideConfig()`/`provideConfigFactory()` — `tools/eslint-rules/rules/use-provide-default-config.ts:L22-L49`, `tools/eslint-rules/rules/use-provide-default-config-factory.ts:L22-L46` — ma sono abilitate come `error` solo per i file `**/*.module.ts` del workspace — `eslint.config.mjs:L231-L239` — e disattivate nell'app demo — `projects/storefrontapp/eslint.config.mjs:L12-L13`. Una chiamata in un `*.providers.ts` o `*.config.ts` non viene segnalata. L'app demo invece, da "consumer", usa `provideConfig` per backend, routing e `features.level` — `projects/storefrontapp/src/app/private/private.providers.ts:L19-L50`.
 
 ### 3.3 `ConfigModule`: la variante NgModule
 
@@ -97,7 +97,7 @@ Il JSDoc di `provideConfig` ricorda che nelle librerie va usato `provideDefaultC
 - `withConfigFactory(factory, deps?)` → `provideConfigFactory(factory, deps)` — `core-libs/core/src/config/config.module.ts:L44-L53`;
 - `forRoot(config = {})` → identico a `withConfig` — `core-libs/core/src/config/config.module.ts:L60-L66`.
 
-Tutti contengono un `eslint-disable-next-line` per la regola di cui sopra. Il ruolo vero del modulo è un altro: il suo costruttore inietta `ConfigurationService` "to make sure ConfigurationService will be instantiated" — `core-libs/core/src/config/config.module.ts:L13-L19`. È l'unico punto di libreria che lo inietta (fuori dalla cartella `config/` il grep trova solo una costante delle schematics, `core-libs/schematics/src/shared/constants.ts:L328-L328`).
+Tutti contengono un `eslint-disable-next-line` per la regola di cui sopra. Il ruolo vero del modulo è un altro: il suo costruttore inietta `ConfigurationService` "to make sure ConfigurationService will be instantiated" — `core-libs/core/src/config/config.module.ts:L13-L19`. È l'unico punto di libreria che lo inietta (fuori dalla cartella `config/` il grep trova solo una costante delle schematics, `core-libs/schematics/src/shared/constants.ts:L328-L328`, e una menzione nel JSDoc di `disableConfigUpdates`, `core-libs/core/src/features-config/config/features-config.ts:L112-L112`).
 
 `BaseCoreModule` importa, in quest'ordine, `ErrorHandlingModule.forRoot()`, `StateModule.forRoot()`, `ConfigModule.forRoot()`, `ConfigInitializerModule.forRoot()`, `ConfigValidatorModule.forRoot()` — `core-libs/core/src/base-core.module.ts:L26-L32`. Quindi in una storefront standard i tre moduli di config sono sempre presenti.
 
@@ -110,7 +110,7 @@ La `Config` viene costruita **pigramente**, alla prima iniezione di `Config` o d
 3. Poi chiede `RootConfig` → `rootConfigFactory` fonde i `ConfigChunk` — `core-libs/core/src/config/config-tokens.ts:L37-L39`.
 4. `deepMerge({}, DefaultConfig, RootConfig)` produce l'oggetto `Config` — `core-libs/core/src/config/config-tokens.ts:L11-L11`.
 
-L'ordine dei chunk all'interno dello stesso token è l'ordine in cui l'`R3Injector` li ha accumulati nel record multi (`multiRecord.multi!.push(provider)`) — `angular:packages/core/src/di/r3_injector.ts:L497-L512`. ⚠️ DA VERIFICARE: l'ordine esatto tra provider dichiarati in `makeEnvironmentProviders` e quelli provenienti da `importProvidersFrom` non è stato tracciato nel codice Angular (dossier Q1).
+L'ordine dei chunk all'interno dello stesso token è l'ordine in cui l'`R3Injector` li ha accumulati nel record multi (`multiRecord.multi!.push(provider)`) — `angular:packages/core/src/di/r3_injector.ts:L497-L512`. Tra provider dichiarati in `makeEnvironmentProviders` e quelli provenienti da `importProvidersFrom` vale l'ordine di posizione nell'array: `makeEnvironmentProviders` conserva l'array così com'è — `angular:packages/core/src/di/provider_collection.ts:L46-L52` — `importProvidersFrom` restituisce l'elenco dei provider raccolti in ordine (`providersOut.push(provider)`, con i `ModuleWithProviders` elaborati dopo i moduli semplici) — `angular:packages/core/src/di/provider_collection.ts:L151-L189` — e l'`R3Injector` appiattisce array ed `EnvironmentProviders` con una visita in profondità ordinata — `angular:packages/core/src/di/r3_injector.ts:L725-L738`. Nell'app demo, quindi, il `provideConfig` di `private.providers.ts` precede il `ConfigChunk` di `TestConfigModule.forRoot()`, che vince — `projects/storefrontapp/src/app/private/private.providers.ts:L19-L56`.
 
 ### 3.5 L'algoritmo di `deepMerge`
 
@@ -173,11 +173,11 @@ Il merge in `rootConfig` oltre che in `config` mantiene coerente la config unifi
 
 Il fatto che l'elenco completo venga emesso solo **dopo** l'avvio di tutte le factory (`L170-L170`) abilita le dipendenze tra initializer: `I18nConfigInitializer` (scope `['i18n.fallbackLang']`) dentro la propria `configFactory` chiama `getStable('context.language')` — `core-libs/core/src/i18n/config/i18n-config-initializer.ts:L14-L33`. In quell'istante `ongoingScopes$` vale ancora `undefined`, `isStable` è falso e il filtro `!!ongoingScopes` lo fa aspettare la lista completa; poi attende che lo scope `context` (registrato da `SiteContextConfigInitializer`) si chiuda.
 
-Consumatori tipici di `getStable` con scope: `CmsComponentsService` (`'cmsComponents'`) — `core-libs/storefront/cms-structure/services/cms-components.service.ts:L61-L62`; `CmsFeaturesService` (`'featureModules'`) — `core-libs/storefront/cms-structure/services/cms-features.service.ts:L57-L58`; `DirectionService` (`'direction'`) — `core-libs/storefront/layout/direction/direction.service.ts:L48-L48`; `OAuthLibWrapperService` (`'authentication'`) — `core-libs/core/src/auth/user-auth/services/oauth-lib-wrapper.service.ts:L59-L59`; la persistenza del carrello (`'context'`) — `feature-libs/cart/base/core/cart-persistence.module.ts:L25-L25`. Inoltre un `APP_INITIALIZER` del site context (`initializeContext`) attende `getStable('context')` — `core-libs/core/src/site-context/providers/context-service-providers.ts:L15-L21`.
+Consumatori tipici di `getStable` con scope: `CmsComponentsService` (`'cmsComponents'`) — `core-libs/storefront/cms-structure/services/cms-components.service.ts:L61-L62`; `CmsFeaturesService` (`'featureModules'`) — `core-libs/storefront/cms-structure/services/cms-features.service.ts:L57-L58`; `DirectionService` (`'direction'`) — `core-libs/storefront/layout/direction/direction.service.ts:L48-L48`; `OAuthLibWrapperService` (`'authentication'`) — `core-libs/core/src/auth/user-auth/services/oauth-lib-wrapper.service.ts:L59-L59`; la persistenza del carrello (`'context'`) — `feature-libs/cart/base/core/cart-persistence.module.ts:L25-L25`. Inoltre un `APP_INITIALIZER` del site context (`initializeContext`) attende `getStable('context')` — `core-libs/core/src/site-context/providers/context-service-providers.ts:L15-L21` (registrazione come `APP_INITIALIZER` a `L27-L31`).
 
 ### 3.8 Bloccare la navigazione iniziale
 
-Il terzo provider di `ConfigInitializerModule` è `provideLocationInitializerFactory(...)` — `core-libs/core/src/config/config-initializer/config-initializer.module.ts:L60-L64` — che crea un multi-provider sul token Spartacus `LOCATION_INITIALIZED_MULTI` — `core-libs/core/src/routing/location-initialized-multi/location-initialized-multi.ts:L43-L51` (pubblico via `core-libs/core/src/routing/index.ts:L11-L11`).
+Il terzo provider di `ConfigInitializerModule` è `provideLocationInitializerFactory(...)` — `core-libs/core/src/config/config-initializer/config-initializer.module.ts:L60-L64` — che crea un multi-provider sul token Spartacus `LOCATION_INITIALIZED_MULTI` — `core-libs/core/src/routing/location-initialized-multi/location-initialized-multi.ts:L36-L51` (pubblico via `core-libs/core/src/routing/index.ts:L11-L11`).
 
 `RoutingModule.forRoot()` fornisce il token Angular `LOCATION_INITIALIZED` con una factory che esegue tutti i `LOCATION_INITIALIZED_MULTI` e ne fa `Promise.all` — `core-libs/core/src/routing/routing.module.ts:L66-L71`, `L102-L105`. Lo storefront configura il router con `initialNavigation: 'enabledBlocking'` — `core-libs/storefront/router/app-routing.module.ts:L13-L19` — e con questa opzione Angular registra un app initializer che attende `LOCATION_INITIALIZED` prima di far partire la navigazione iniziale — `angular:packages/router/src/provide_router.ts:L441-L465`.
 
@@ -214,8 +214,8 @@ Il flag `disableConfigUpdates` è dichiarato in `FeaturesConfig` come `@deprecat
 |---|---|---|---|
 | `SiteContextConfigInitializer` | `['context']` | solo se manca `context.baseSite` statico (`initSiteContextConfig` restituisce `null` altrimenti) | `core-libs/core/src/site-context/config/config-loader/site-context-config-initializer.ts:L24-L27`; `core-libs/core/src/site-context/site-context.module.ts:L30-L41`, `L51-L61` |
 | `I18nConfigInitializer` | `['i18n.fallbackLang']` | solo se `i18n.fallbackLang` è `undefined` | `core-libs/core/src/i18n/config/i18n-config-initializer.ts:L14-L33`; `core-libs/core/src/i18n/i18n.module.ts:L30-L53` |
-| `SecurePortalConfigInitializer` | `['routing']` | tramite `initSecurePortalConfig` | `core-libs/core/src/routing/configurable-routes/secure-portal-config/secure-portal-config-initializer.ts:L16-L19`; `core-libs/core/src/routing/routing.module.ts:L96-L101` |
-| `AuthConfigInitializer` | — | solo con feature toggle `asyncAuthConfigInitializer` | `core-libs/core/src/auth/user-auth/user-auth.module.ts:L106-L113`; `core-libs/core/src/auth/user-auth/config/auth-config-initializer.ts:L24-L24` |
+| `SecurePortalConfigInitializer` | `['routing']` | solo se `routing.protected` è `undefined` (`initSecurePortalConfig` restituisce `null` altrimenti, `core-libs/core/src/routing/routing.module.ts:L44-L52`) | `core-libs/core/src/routing/configurable-routes/secure-portal-config/secure-portal-config-initializer.ts:L16-L19`; `core-libs/core/src/routing/routing.module.ts:L96-L101` |
+| `AuthConfigInitializer` | `['authentication.OAuthLibConfig.redirectUri', 'authentication.client_id']` | solo con feature toggle `asyncAuthConfigInitializer` | `core-libs/core/src/auth/user-auth/user-auth.module.ts:L106-L113`; `core-libs/core/src/auth/user-auth/config/auth-config-initializer.ts:L20-L24` |
 
 Si notano tre stili di registrazione: provider scritto a mano con `useFactory` + `deps` (`site-context.module.ts:L56-L61`), `provideConfigInitializerFactory` con `inject()` (`routing.module.ts:L96-L101`), e un toggle con commento "When removing this feature toggle, switch to `provideConfigInitializer`" (`user-auth.module.ts:L109-L109`).
 
@@ -273,27 +273,31 @@ sequenceDiagram
   participant NG as "Angular ApplicationInitStatus"
   participant AI as "APP_INITIALIZER (configInitializerFactory)"
   participant CIS as "ConfigInitializerService"
-  participant SC as "SiteContextConfigInitializer"
   participant I18 as "I18nConfigInitializer"
-  participant R as "Router (enabledBlocking)"
+  participant SC as "SiteContextConfigInitializer"
+  participant R as "APP_INITIALIZER del Router (enabledBlocking)"
   NG->>AI: runInInjectionContext
   AI->>CIS: initialize(initializers)
-  CIS->>SC: configFactory() (scope 'context')
   CIS->>I18: configFactory() (scope 'i18n.fallbackLang')
   I18->>CIS: getStable('context.language')
-  CIS-->>CIS: ongoingScopes$.next(['context','i18n.fallbackLang'])
+  CIS->>SC: configFactory() (scope 'context')
+  CIS-->>CIS: ongoingScopes$.next(['i18n.fallbackLang','context'])
+  NG->>R: runInInjectionContext (stesso ciclo for)
+  R->>R: attende LOCATION_INITIALIZED (Promise.all di LOCATION_INITIALIZED_MULTI)
   SC-->>CIS: Promise risolta con chunk context
   CIS-->>CIS: deepMerge(rootConfig), deepMerge(config), finishScopes(['context'])
   CIS-->>I18: emette config (context.language stabile)
   I18-->>CIS: chunk i18n.fallbackLang
   CIS-->>CIS: finishScopes(['i18n.fallbackLang']) → ongoingScopes = []
   CIS-->>AI: Promise.all risolta
-  AI-->>NG: initializer completato
-  R->>R: attende LOCATION_INITIALIZED (Promise.all di LOCATION_INITIALIZED_MULTI)
-  CIS-->>R: getStable() emette → navigazione iniziale
+  CIS-->>R: getStable() emette → LOCATION_INITIALIZED risolta → router.initialNavigation()
+  R-->>NG: Promise risolta ad afterPreactivation della navigazione iniziale
+  NG->>NG: Promise.all(asyncInitPromises) → bootstrap completato
 ```
 
-Passi: 1 → `application_init.ts:L245-L246`; 2 → `config-initializer.module.ts:L24-L30`; 3-4 → `config-initializer.service.ts:L154-L158`; 5 → `i18n-config-initializer.ts:L25-L25` (vedi §3.7); 6 → `config-initializer.service.ts:L170-L170`; 7-8 → `L158-L166`; 9 → `L58-L70`; 11 → `L77-L83`; 12-13 → `L172-L174`, `application_init.ts:L263-L269`; 14-15 → `routing.module.ts:L66-L71`, `config-initializer.module.ts:L60-L64`, `angular:packages/router/src/provide_router.ts:L441-L455`. L'ordine relativo tra la risoluzione di `SiteContextConfigInitializer` e l'emissione del passo 6 è garantito perché la ripresa dopo `await` avviene sempre in un microtask successivo all'esecuzione sincrona del ciclo `for`.
+Passi: 1 → `application_init.ts:L245-L246`; 2 → `config-initializer.module.ts:L24-L30`; 3, 5 → `config-initializer.service.ts:L154-L158`; 4 → `i18n-config-initializer.ts:L25-L25` (vedi §3.7); 6 → `config-initializer.service.ts:L170-L170`; 7 → `angular:packages/core/src/application/application_init.ts:L245-L248`, `angular:packages/router/src/router_module.ts:L240-L241`; 8 → `angular:packages/router/src/provide_router.ts:L445-L452`, `routing.module.ts:L66-L71`; 9-10 → `config-initializer.service.ts:L158-L166`; 11 → `L58-L70`; 13 → `L77-L83`; 15 → `config-initializer.module.ts:L60-L64`, `angular:packages/router/src/provide_router.ts:L452-L469`; 16-17 → `angular:packages/router/src/provide_router.ts:L462-L468`, `angular:packages/core/src/application/application_init.ts:L263-L269`.
+
+L'ordine dei passi 3-5 riflette l'ordine dei provider `CONFIG_INITIALIZER` nella storefront standard: `BaseCoreModule` importa `I18nModule.forRoot()` prima di `SiteContextModule.forRoot()` — `core-libs/core/src/base-core.module.ts:L33-L38` — e Angular elabora i `ModuleWithProviders` nell'ordine di import — `angular:packages/core/src/di/provider_collection.ts:L316-L320`. Con un ordine diverso il risultato non cambia, perché `ongoingScopes$` viene emesso solo al passo 6. Spartacus usa `RouterModule.forRoot({initialNavigation: 'enabledBlocking'})`, che Angular traduce in `withEnabledBlockingInitialNavigation()` — `angular:packages/router/src/router_module.ts:L240-L241`: l'attesa di `LOCATION_INITIALIZED` è quindi essa stessa un `APP_INITIALIZER`, avviato nello stesso ciclo `for` di `runInitializers` e concorrente a `configInitializerFactory` (la posizione relativa dei due nel ciclo dipende dall'ordine dei provider ed è irrilevante: entrambi restano pendenti). L'ordine relativo tra la risoluzione di `SiteContextConfigInitializer` e l'emissione del passo 6 è garantito perché la ripresa dopo `await` avviene sempre in un microtask successivo all'esecuzione sincrona del ciclo `for`.
 
 ### 4.3 Stato di `ongoingScopes$`
 
@@ -387,6 +391,7 @@ export function provideConfig(
     useValue: config,
     multi: true,
   };
+}
 ```
 
 **`deepMerge`** — `core-libs/core/src/config/utils/deep-merge.ts:L18-L49`
@@ -600,7 +605,7 @@ Il sottosistema è il "contenitore" della configurazione; le chiavi che lo gover
 |---|---|---|---|---|
 | `features.disableConfigUpdates` | `boolean?` | non impostata (= `false`, "disabled by default") | `core-libs/core/src/features-config/config/features-config.ts:L101-L116` | `core-libs/core/src/config/services/configuration.service.ts:L103-L103` via `isFeatureEnabled` (`core-libs/core/src/features-config/utils/feature-config-utils.ts:L48-L51`) |
 | `context.baseSite` (statico) | `string[]` | — | `core-libs/core/src/site-context/config/site-context-config.ts:L15-L18` | `core-libs/core/src/site-context/site-context.module.ts:L36-L38` (se presente, `SiteContextConfigInitializer` non viene attivato) |
-| `i18n.fallbackLang` | `string \| false` | — | `core-libs/core/src/i18n/config/i18n-config.ts:L19-L23` | `core-libs/core/src/i18n/i18n.module.ts:L30-L32` (se definito, `I18nConfigInitializer` non viene attivato) |
+| `i18n.fallbackLang` | `string \| false` | `undefined` (esplicito in `defaultI18nConfig`, `core-libs/core/src/i18n/config/default-i18n-config.ts:L9-L14`) | `core-libs/core/src/i18n/config/i18n-config.ts:L19-L23` | `core-libs/core/src/i18n/i18n.module.ts:L30-L32` (se definito, `I18nConfigInitializer` non viene attivato) |
 | `TestConfigModuleOptions.cookie` | `string` | — (demo: `'cxConfigE2E'`) | `core-libs/core/src/config/test-config.module.ts:L65-L67` | `core-libs/core/src/config/test-config.module.ts:L89-L92`, `L45-L45` |
 | `provideConfig(config, defaultConfig)` 2° argomento | `boolean` | `false` | `core-libs/core/src/config/config-providers.ts:L18-L21` | `core-libs/core/src/config/config-providers.ts:L23-L23` |
 | `provideConfigFactory(..., defaultConfig)` 3° argomento | `boolean` | `false` | `core-libs/core/src/config/config-providers.ts:L37-L41` | `core-libs/core/src/config/config-providers.ts:L43-L43` |
@@ -609,9 +614,10 @@ Il sottosistema è il "contenitore" della configurazione; le chiavi che lo gover
 **Priorità di merge**, dal più debole al più forte:
 
 1. `DefaultConfigChunk`, nell'ordine dei provider — `core-libs/core/src/config/config-tokens.ts:L23-L28`.
-2. `ConfigChunk`, nell'ordine dei provider — `core-libs/core/src/config/config-tokens.ts:L37-L39` — sempre sopra i default — `L10-L12`.
-3. Config prodotta dai `CONFIG_INITIALIZER`, fusa in `RootConfig` e `Config` dopo la costruzione — `core-libs/core/src/config/config-initializer/config-initializer.service.ts:L158-L165`.
-4. Config unificata dei moduli lazy: `defaultConfig < ambientDefault < ambient < rootConfig` — `core-libs/core/src/config/services/configuration.service.ts:L93-L99` — fusa nella `Config` globale se `disableConfigUpdates` non è attivo.
+2. `DefaultConfigChunk` dei moduli lazy (`ambientDefaultConfig`), fusi nella `Config` globale se `disableConfigUpdates` non è attivo — `core-libs/core/src/config/services/configuration.service.ts:L93-L99`.
+3. `ConfigChunk` dei moduli lazy (`ambientConfig`) — stesso `deepMerge`, `L93-L99`.
+4. `ConfigChunk` root, nell'ordine dei provider — `core-libs/core/src/config/config-tokens.ts:L37-L39` — sempre sopra i default — `L10-L12` — e sopra i chunk lazy perché `rootConfig` è l'ultimo argomento del `deepMerge` di `emitUnifiedConfig` — `core-libs/core/src/config/services/configuration.service.ts:L93-L99`.
+5. Config prodotta dai `CONFIG_INITIALIZER`, fusa in place in `RootConfig` (e in `Config`) dopo la costruzione — `core-libs/core/src/config/config-initializer/config-initializer.service.ts:L158-L165` — quindi presente anche nel `rootConfig` usato da `emitUnifiedConfig`, dove sovrascrive i `ConfigChunk` root.
 
 ## 7. Commenti e note notevoli dal sorgente
 
@@ -642,8 +648,8 @@ Il sottosistema è il "contenitore" della configurazione; le chiavi che lo gover
 | `ConfigInitializerService.getStable` | servizio root (metodi `protected` sovrascrivibili) | `core-libs/core/src/config/config-initializer/config-initializer.service.ts:L58-L70` | `core-libs/core/src/config/config-initializer/index.ts:L14-L14` |
 | `ConfigValidator`, `provideConfigValidator`, `ConfigValidatorToken`, `validateConfig` | tipo / provider / token / funzione | `core-libs/core/src/config/config-validator/config-validator.ts:L11-L48` | `core-libs/core/src/config/config-validator/index.ts:L7-L7` |
 | `ConfigurationService.unifiedConfig$` | Observable | `core-libs/core/src/config/services/configuration.service.ts:L21-L35` | `core-libs/core/src/config/index.ts:L19-L19` |
-| `TestConfigModule`, `TEST_CONFIG`, `TEST_CONFIG_COOKIE_NAME` | NgModule / token | `core-libs/core/src/config/test-config.module.ts:L35-L106` | `core-libs/core/src/config/index.ts:L20-L26` |
-| `LOCATION_INITIALIZED_MULTI`, `provideLocationInitializerFactory` | token / provider | `core-libs/core/src/routing/location-initialized-multi/location-initialized-multi.ts:L43-L51` | `core-libs/core/src/routing/index.ts:L11-L11` |
+| `TestConfigModule`, `TEST_CONFIG`, `TEST_CONFIG_COOKIE_NAME` | NgModule / token | `core-libs/core/src/config/test-config.module.ts:L31-L106` | `core-libs/core/src/config/index.ts:L20-L26` |
+| `LOCATION_INITIALIZED_MULTI`, `provideLocationInitializerFactory` | token / provider | `core-libs/core/src/routing/location-initialized-multi/location-initialized-multi.ts:L36-L51` | `core-libs/core/src/routing/index.ts:L11-L11` |
 | `deepMerge`, `isObject`, `StringTemplate` | util | `core-libs/core/src/config/utils/deep-merge.ts:L7-L49`, `core-libs/core/src/config/utils/string-template.ts:L15-L31` | `core-libs/core/src/config/index.ts:L27-L28` |
 
 Ricette pertinenti nella Parte III:
@@ -686,7 +692,7 @@ Vincoli che derivano dal codice: `scopes` non vuoto (altrimenti errore, `config-
 9. **Errore sincrono dentro un metodo async**: un initializer senza scope fa lanciare `initialize`, che essendo `async` restituisce una Promise rifiutata → bootstrap fallito — `config-initializer.service.ts:L130-L130`, `L144-L146`.
 10. **I validator non proteggono la produzione**: girano solo con `isDevMode()` e loggano soltanto — `core-libs/core/src/config/config-validator/config-validator.module.ts:L28-L35`; `core-libs/core/src/config/config-validator/config-validator.ts:L42-L46`.
 11. **Non determinismo con i moduli lazy**: la `Config` globale cambia quando arriva un modulo lazy; `CmsComponentsService` copia `cmsComponents` dalla config stabile proprio per questo — `core-libs/storefront/cms-structure/services/cms-components.service.ts:L61-L69`.
-12. **`ConfigurationService` esiste solo se c'è `ConfigModule`** — `core-libs/core/src/config/config.module.ts:L15-L19`. In un setup minimale (es. test) che non importa `ConfigModule` i chunk dei moduli lazy non arrivano mai nella config globale. ⚠️ DA VERIFICARE: l'assenza di altri punti di istanziazione è basata su grep (dossier F27).
+12. **`ConfigurationService` esiste solo se c'è `ConfigModule`** — `core-libs/core/src/config/config.module.ts:L15-L19`. In un setup minimale (es. test) che non importa `ConfigModule` i chunk dei moduli lazy non arrivano mai nella config globale. L'assenza di altri punti di iniezione è verificata via grep su `core-libs`, `feature-libs`, `integration-libs` e `projects` (spec escluse): `ConfigurationService` è iniettato solo nel costruttore di `ConfigModule` — `core-libs/core/src/config/config.module.ts:L17-L17`.
 13. **Il sito non trovato rompe il bootstrap**: `SiteContextConfigInitializer` lancia un errore se l'URL non matcha alcun base site — `core-libs/core/src/site-context/config/config-loader/site-context-config-initializer.ts:L61-L70` — ma è attivo solo se manca `context.baseSite` statico — `core-libs/core/src/site-context/site-context.module.ts:L36-L40`.
 14. **`ConfigModule.forRoot()` non è un vero forRoot**: identico a `withConfig`, nessun guard di unicità — `core-libs/core/src/config/config.module.ts:L28-L34`, `L60-L66`.
 15. **Doppio decode e RegExp non escapata nel cookie e2e**: `getCookie` fa `decodeURIComponent` — `core-libs/core/src/config/utils/get-cookie.ts:L11-L11` — e `parseConfigJSON` lo rifà — `core-libs/core/src/config/test-config.module.ts:L59-L59`; il nome del cookie entra nella RegExp senza escape — `get-cookie.ts:L8-L8`.
