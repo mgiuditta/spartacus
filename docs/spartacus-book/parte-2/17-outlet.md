@@ -70,13 +70,13 @@ Il registro **non espone Observable**: aggiungere o togliere una voce non notifi
 1. Un modulo dichiara `provideOutlet({ id, component, position? })`, che restituisce un multi provider `{ provide: PROVIDE_OUTLET_OPTIONS, useValue: options, multi: true }` (`core-libs/storefront/cms-structure/outlet/outlet.providers.ts:L41-L47`). `ProvideOutletOptions` ha `id: string`, `component: Type<any>`, `position?: OutletPosition` (`core-libs/storefront/cms-structure/outlet/outlet.providers.ts:L17-L32`).
 2. `BaseStorefrontModule` importa `OutletModule.forRoot()` (`core-libs/storefront/base-storefront.module.ts:L43-L43`), che registra `registerOutletsFactory` come `APP_INITIALIZER` multi con deps `[new Optional(), PROVIDE_OUTLET_OPTIONS]`, `ComponentFactoryResolver`, `OutletService` (`core-libs/storefront/cms-structure/outlet/outlet.module.ts:L54-L70`).
 3. Al bootstrap la funzione restituita da `registerOutletsFactory` itera sulle opzioni, risolve una `ComponentFactory` per ogni `component` e la aggiunge a `OutletService` con posizione `options.position ?? OutletPosition.AFTER` (`core-libs/storefront/cms-structure/outlet/outlet.module.ts:L29-L47`).
-4. In Angular, `resolveComponentFactory` crea **una nuova istanza** di `ComponentFactory` a ogni chiamata, legata all'`NgModuleRef` del resolver (`angular:packages/core/src/render3/component_ref.ts:L97-L101`); il resolver del root injector è quello del root `NgModuleRef` (`angular:packages/core/src/render3/ng_module_ref.ts:L64-L65`, `angular:packages/core/src/render3/ng_module_ref.ts:L88-L89`).
+4. In Angular, `resolveComponentFactory` crea **una nuova istanza** di `ComponentFactory` a ogni chiamata, legata all'`NgModuleRef` del resolver (`angular:packages/core/src/render3/component_ref.ts:L97-L101`); con `bootstrapApplication` (come nell'app demo, `projects/storefrontapp/src/main.ts:L17-L17`) il root environment injector è un `EnvironmentNgModuleRefAdapter`, che fornisce un proprio `ComponentFactoryResolver(this)` (`angular:packages/core/src/application/create_application.ts:L72-L72`, `angular:packages/core/src/render3/ng_module_ref.ts:L147-L148`, `angular:packages/core/src/render3/ng_module_ref.ts:L162-L162`); per i moduli lazy è invece l'`NgModuleRef` del modulo (`angular:packages/core/src/render3/ng_module_ref.ts:L64-L65`, `angular:packages/core/src/render3/ng_module_ref.ts:L88-L89`).
 
 **(b) `provideOutlet` + `OutletModule.forChild()` (moduli lazy).**
 
 1. `forChild()` registra la stessa factory ma sul token `MODULE_INITIALIZER` di `@spartacus/core` (`core-libs/storefront/cms-structure/outlet/outlet.module.ts:L72-L88`). È importato in `CartBaseComponentsModule`, `PickupInStoreComponentsModule`, `OrderConfirmationModule` (`feature-libs/cart/base/components/cart-base-components.module.ts:L30-L30`, `feature-libs/pickup-in-store/components/pickup-in-store-components.module.ts:L28-L28`, `feature-libs/order/components/order-confirmation/order-confirmation.module.ts:L61-L61`).
 2. `MODULE_INITIALIZER` è descritto come "un APP_INITIALIZER per moduli lazy"; se il modulo è eager le funzioni girano all'avvio (`core-libs/core/src/lazy-loading/tokens.ts:L9-L20`). Il fallback eager è l'`APP_INITIALIZER` di `LazyLoadingModule.forRoot()` (`core-libs/core/src/lazy-loading/lazy-loading.module.ts:L40-L52`), importato da `BaseCoreModule` (`core-libs/core/src/base-core.module.ts:L41-L41`).
-3. Per un modulo lazy, `LazyModulesService.resolveModuleInstance` crea il modulo e subito dopo chiama `runModuleInitializersForModule(moduleRef)` (`core-libs/core/src/lazy-loading/lazy-modules.service.ts:L96-L98`), che legge `MODULE_INITIALIZER` dall'injector del modulo con `{ self: true }` (`core-libs/core/src/lazy-loading/lazy-modules.service.ts:L150-L157`) ed esegue tutte le funzioni, attendendo solo i risultati promise-like (`core-libs/core/src/lazy-loading/lazy-modules.service.ts:L187-L199`). `registerOutletsFactory` ritorna `void`, quindi è sincrona (`core-libs/storefront/cms-structure/outlet/outlet.module.ts:L33-L33`).
+3. Per un modulo lazy, `LazyModulesService.resolveModuleInstance` crea il modulo e subito dopo chiama `runModuleInitializersForModule(moduleRef)` (`core-libs/core/src/lazy-loading/lazy-modules.service.ts:L96-L98`), che legge `MODULE_INITIALIZER` dall'injector del modulo con `{ self: true }` (`core-libs/core/src/lazy-loading/lazy-modules.service.ts:L150-L157`) ed esegue tutte le funzioni, attendendo solo i risultati promise-like (`core-libs/core/src/lazy-loading/lazy-modules.service.ts:L187-L199`). La funzione restituita da `registerOutletsFactory` ha tipo `() => void`: non restituisce una promise, quindi `runModuleInitializersForModule` non attende nulla (`core-libs/storefront/cms-structure/outlet/outlet.module.ts:L33-L33`, `core-libs/core/src/lazy-loading/lazy-modules.service.ts:L194-L197`).
 4. Le deps vengono risolte dall'injector del modulo lazy: il `ComponentFactoryResolver` è quello dell'`NgModuleRef` lazy, quindi la factory è legata a quel modulo (`angular:packages/core/src/render3/ng_module_ref.ts:L64-L65`, `angular:packages/core/src/render3/ng_module_ref.ts:L88-L89`).
 
 Esempio concreto nell'app demo: `CartBaseModule` importa `CartBaseComponentsModule` (`feature-libs/cart/base/cart-base.module.ts:L12-L15`), che contiene `OutletModule.forChild()`, ed è caricato lazy da `featureModules[CART_BASE_FEATURE]` tramite `CartBaseWrapperModule` (`projects/storefrontapp/src/app/spartacus/features/cart/cart-base-feature.module.ts:L26-L35`, `projects/storefrontapp/src/app/spartacus/features/cart/cart-base-wrapper.module.ts:L22-L25`).
@@ -127,7 +127,7 @@ Le due forme di contenuto ricevono il contesto in modo diverso:
 
 Un componente tipico usa `@Optional() OutletContextData` e si sottoscrive a `context$` (`feature-libs/cart/base/components/cart-shared/order-summary/order-summary.component.ts:L26-L34`); l'iniezione è opzionale perché lo stesso `OrderSummaryComponent` è usato anche come elemento diretto `<cx-order-summary [cart]="cart" />` (`feature-libs/cart/base/components/cart-totals/cart-totals.component.html:L2-L2`).
 
-Lato Angular, la `ComponentFactory` passata a `createComponent` porta con sé un `ngModule`: in quel caso `ViewContainerRef.createComponent` non cerca un `EnvironmentInjector` nell'albero DI e usa come `contextInjector` l'injector passato (`angular:packages/core/src/linker/view_container_ref.ts:L531-L537`); l'environment injector diventa l'`ngModule` della factory (`angular:packages/core/src/render3/component_ref.ts:L282-L286`). Il componente vede quindi: node injector = quello con `OutletContextData` (parent `vcr.injector`), environment injector = l'`NgModuleRef` in cui la factory è stata risolta (root per `forRoot`, lazy per `forChild`).
+Lato Angular, la `ComponentFactory` passata a `createComponent` porta con sé un `ngModule`: in quel caso `ViewContainerRef.createComponent` non cerca un `EnvironmentInjector` nell'albero DI e usa come `contextInjector` l'injector passato (`angular:packages/core/src/linker/view_container_ref.ts:L531-L537`); l'environment injector diventa l'`ngModule` della factory (`angular:packages/core/src/render3/component_ref.ts:L282-L286`). Il componente vede quindi: node injector = quello con `OutletContextData` (parent `vcr.injector`), environment injector = il `NgModuleRef` in cui la factory è stata risolta (per `forRoot`, con `bootstrapApplication`, l'`EnvironmentNgModuleRefAdapter` root; per `forChild` l'`NgModuleRef` lazy).
 
 ### 3.6 Deferred loading (`cxOutletDefer`)
 
@@ -202,23 +202,31 @@ sequenceDiagram
   participant OS as "OutletService"
   participant VCR as "ViewContainerRef"
   participant RS as "OutletRendererService"
-  T->>D: ngOnChanges(cxOutlet, cxOutletContext)
+  T->>D: ngOnChanges(cxOutlet, cxOutletContext) (primo ciclo, un'unica chiamata)
   D->>D: render(): vcr.clear(), reset stato
   alt cxOutletDefer valorizzato
     D-->>T: loaded(false) (async)
     D->>DL: load(hostElement, cxOutletDefer)
     alt server o INSTANT
-      DL-->>D: of(true)
+      DL-->>D: of(true) (sincrono)
+      D->>D: build()
+      D-->>T: loaded(true) (async)
     else DEFER
       DL->>IS: isIntersected(host, options)
-      IS-->>DL: primo true (IntersectionObserver)
-      DL-->>D: true
+      Note over D,IS: asincrono: build() avverrà dopo register
     end
-    D->>D: build()
-    D-->>T: loaded(true) (async)
   else nessun defer
     D->>D: build()
   end
+  D->>RS: register(name, this) (subito dopo render)
+  D->>D: outletContext$.next(ctx) (stesso ngOnChanges)
+  opt DEFER, alla prima intersezione
+    IS-->>DL: primo true (IntersectionObserver)
+    DL-->>D: true
+    D->>D: build()
+    D-->>T: loaded(true) (async)
+  end
+  Note over D,VCR: build() esegue il loop seguente
   loop BEFORE, REPLACE, AFTER
     D->>OS: get(name, pos, USE_STACKED_OUTLETS)
     OS-->>D: T[] o undefined
@@ -227,12 +235,9 @@ sequenceDiagram
     D->>VCR: oppure createEmbeddedView(tpl, $implicit: ctx)
     D-->>T: cxComponentRefChange(ref)
   end
-  D->>RS: register(name, this)
-  T->>D: ngOnChanges(cxOutletContext)
-  D->>D: outletContext$.next(ctx)
 ```
 
-Riferimenti: `ngOnChanges` (`core-libs/storefront/cms-structure/outlet/outlet.directive.ts:L92-L100`), `render` (`core-libs/storefront/cms-structure/outlet/outlet.directive.ts:L78-L90`), `deferLoading` (`core-libs/storefront/cms-structure/outlet/outlet.directive.ts:L102-L116`), `DeferLoaderService` (`core-libs/storefront/layout/loading/defer-loader.service.ts:L44-L64`), `IntersectionService` (`core-libs/storefront/layout/loading/intersection.service.ts:L45-L58`), `buildOutlet`/`create` (`core-libs/storefront/cms-structure/outlet/outlet.directive.ts:L130-L190`).
+Riferimenti: `ngOnChanges` (`core-libs/storefront/cms-structure/outlet/outlet.directive.ts:L92-L100`), `render` (`core-libs/storefront/cms-structure/outlet/outlet.directive.ts:L78-L90`), `deferLoading` (`core-libs/storefront/cms-structure/outlet/outlet.directive.ts:L102-L116`; nel ramo DEFER `build()` gira nella subscribe, quindi dopo `register`: `core-libs/storefront/cms-structure/outlet/outlet.directive.ts:L93-L96`, `core-libs/storefront/cms-structure/outlet/outlet.directive.ts:L108-L115`), `DeferLoaderService` (`core-libs/storefront/layout/loading/defer-loader.service.ts:L44-L64`), `IntersectionService` (`core-libs/storefront/layout/loading/intersection.service.ts:L45-L58`), `buildOutlet`/`create` (`core-libs/storefront/cms-structure/outlet/outlet.directive.ts:L130-L190`).
 
 ### 4.3 Decisione di `buildOutlet` per una posizione
 
@@ -503,7 +508,7 @@ E il componente legge il contesto:
 </ng-template>
 ```
 
-**`cxOutletRef` nell'app demo** (le tre posizioni, contesto via `let-model`):
+**`cxOutletRef` nell'app demo** (posizione `before`, contesto via `let-model`; nel file seguono `after` e REPLACE senza `cxOutletPos`, `projects/storefrontapp/src/test-outlets/test-outlet-template/test-outlet-template.component.html:L11-L11` e `projects/storefrontapp/src/test-outlets/test-outlet-template/test-outlet-template.component.html:L19-L19`):
 
 ```html
 <!-- projects/storefrontapp/src/test-outlets/test-outlet-template/test-outlet-template.component.html:L3-L9 -->
@@ -563,7 +568,7 @@ I nomi degli outlet sono stringhe, raccolte per convenzione in enum per feature:
 - `getOutletRef`: JSDoc "Returns map of outlets", ma restituisce una singola direttiva (`core-libs/storefront/cms-structure/outlet/outlet-renderer.service.ts:L39-L43`).
 - `TestOutletModule` è importato "Custom usages of cxOutletRef only for e2e testing" (`projects/storefrontapp/src/app/private/private.providers.ts:L52-L53`).
 - Esiste un uso strutturale commentato `*cxOutlet` nel product summary; nessun uso attivo di quella forma (`core-libs/storefront/cms-components/product/product-summary/product-summary.component.html:L26-L26`).
-- Nessun TODO/FIXME nei 9 file della cartella outlet (dossier, sezione N).
+- Nessun TODO/FIXME nei 9 file della cartella outlet (verificato allo SHA con `grep -rn "TODO\|FIXME" core-libs/storefront/cms-structure/outlet/`: nessun risultato).
 
 ## 8. Extension point
 
@@ -582,7 +587,7 @@ Tutto ciò che segue è esportato da `@spartacus/storefront` tramite la catena `
 | `LayoutConfig.deferredLoading` | Strategia globale e margine dell'intersezione | `core-libs/storefront/layout/config/layout-config.ts:L109-L121` | cap. [18](18-layout-breakpoint-a11y.md) |
 | Enum `*Outlets` (es. `CartOutlets`) | Nomi stabili da usare invece di stringhe | `feature-libs/cart/base/root/models/cart-outlets.model.ts:L10-L10` | [Appendice A08](../appendici/A08-outlet.md) |
 
-**Non pubblici** (non usarli, vedi [54 — upgrade-safe](../parte-3/54-upgrade-safe.md)): `PROVIDE_OUTLET_OPTIONS` (`core-libs/storefront/cms-structure/outlet/outlet.providers.ts:L13-L15`) e `registerOutletsFactory` (`core-libs/storefront/cms-structure/outlet/outlet.module.ts:L29-L47`); nessun file fuori dalla cartella outlet li referenzia (dossier F95).
+**Non pubblici** (non usarli, vedi [54 — upgrade-safe](../parte-3/54-upgrade-safe.md)): `PROVIDE_OUTLET_OPTIONS` (`core-libs/storefront/cms-structure/outlet/outlet.providers.ts:L13-L15`) e `registerOutletsFactory` (`core-libs/storefront/cms-structure/outlet/outlet.module.ts:L29-L47`); nessun file fuori dalla cartella outlet li referenzia (verificato allo SHA con `grep -rln "PROVIDE_OUTLET_OPTIONS\|registerOutletsFactory"`: compaiono solo in `outlet.providers.ts` e `outlet.module.ts`, `core-libs/storefront/cms-structure/outlet/outlet.module.ts:L29-L29`).
 
 Esempio minimale, ricostruito solo con simboli pubblici (`provideOutlet`, `OutletPosition`, `CartOutlets` e il pattern di `cart-item-validation-quantity-hint.module.ts:L16-L20`):
 
@@ -615,11 +620,11 @@ providers: [
 - **T14 — Nomi duplicati nel renderer.** La chiave di `OutletRendererService` è il nome: più `[cxOutlet]` con lo stesso nome (es. lo stesso `flexType` ripetuto in più slot) si sovrascrivono e vince l'ultimo registrato (`core-libs/storefront/cms-structure/outlet/outlet-renderer.service.ts:L36-L38`, `core-libs/storefront/cms-structure/page/slot/page-slot.component.html:L9-L9`). `render(name)` rigenera quindi solo una delle istanze.
 - **T15 — `getOutletRef` emette troppo.** `register` muta la Map in place e la ri-emette; `getOutletRef` non ha `distinctUntilChanged` ed emette a ogni registrazione di *qualunque* outlet (`core-libs/storefront/cms-structure/outlet/outlet-renderer.service.ts:L37-L37`, `core-libs/storefront/cms-structure/outlet/outlet-renderer.service.ts:L43-L48`).
 - **T16 — `reverse()` muta lo stato della direttiva.** In `OutletRenderStrategy.render`, `components.reverse()` inverte in place l'array di `renderedComponents` (`core-libs/storefront/layout/launch-dialog/services/outlet-render.strategy.ts:L67-L68`). Se l'outlet fosse differito e non ancora costruito, `renderedComponents.get(position)` sarebbe `undefined` (`core-libs/storefront/cms-structure/outlet/outlet.directive.ts:L81-L81`) e `.reverse()` lancerebbe. ⚠️ DA VERIFICARE: non è stato cercato se esistano launch config su outlet con `cxOutletDefer` (l'esempio ASM usa `cx-storefront`, senza defer: `core-libs/storefront/layout/main/storefront.component.html:L1-L1`).
-- **T17 — `remove` del launch dialog con una factory nuova.** `OutletRenderStrategy.remove` risolve una nuova factory e la passa come `value` (`core-libs/storefront/layout/launch-dialog/services/outlet-render.strategy.ts:L87-L95`); dato che `resolveComponentFactory` crea un'istanza nuova a ogni chiamata (`angular:packages/core/src/render3/component_ref.ts:L97-L101`), il filtro per identità (`core-libs/storefront/cms-structure/outlet/outlet.service.ts:L91-L91`) non dovrebbe trovare la factory aggiunta in `render()`. Lo spec usa un resolver mock che restituisce sempre lo stesso oggetto e non testa `remove` (`core-libs/storefront/layout/launch-dialog/services/outlet-render.strategy.spec.ts:L40-L55`, `core-libs/storefront/layout/launch-dialog/services/outlet-render.strategy.spec.ts:L57-L127`). ⚠️ DA VERIFICARE con un test reale: è una deduzione dal codice, gli spec non sono eseguibili (node_modules assente).
+- **T17 — `remove` del launch dialog con una factory nuova.** `OutletRenderStrategy.remove` risolve una nuova factory e la passa come `value` (`core-libs/storefront/layout/launch-dialog/services/outlet-render.strategy.ts:L87-L95`); dato che `resolveComponentFactory` crea un'istanza nuova a ogni chiamata (`angular:packages/core/src/render3/component_ref.ts:L97-L101`), il filtro per identità (`core-libs/storefront/cms-structure/outlet/outlet.service.ts:L91-L91`) non dovrebbe trovare la factory aggiunta in `render()`. Lo spec usa un resolver mock che restituisce sempre lo stesso oggetto e non testa `remove` (`core-libs/storefront/layout/launch-dialog/services/outlet-render.strategy.spec.ts:L40-L55`, `core-libs/storefront/layout/launch-dialog/services/outlet-render.strategy.spec.ts:L57-L133`). Coerente con questo, il JSDoc di `LaunchOutletDialog` avverte: "Outlet rendering should only be used for elements that open once and do not close." (`core-libs/storefront/layout/launch-dialog/config/launch-config.ts:L34-L37`). ⚠️ DA VERIFICARE con un test reale: è una deduzione dal codice, gli spec non sono eseguibili (node_modules assente).
 - **T18 — Posizioni non valide.** `add` ignora in silenzio posizioni sconosciute, `get`/`remove` ricadono su REPLACE (`core-libs/storefront/cms-structure/outlet/outlet.service.ts:L36-L37`, `core-libs/storefront/cms-structure/outlet/outlet.service.ts:L58-L60`, `core-libs/storefront/cms-structure/outlet/outlet.service.ts:L74-L76`).
 - **T19 — Nessuna deduplica.** La stessa opzione registrata due volte produce due rendering (`core-libs/storefront/cms-structure/outlet/outlet.service.ts:L38-L40`).
 - **T20 — Possibili doppie registrazioni con `forChild`.** Le deps di `registerOutletsFactory` sono risolte senza `Self` (`core-libs/storefront/cms-structure/outlet/outlet.module.ts:L79-L83`); un injector di modulo senza propri `PROVIDE_OUTLET_OPTIONS` delega al parent (`angular:packages/core/src/di/r3_injector.ts:L345-L347`, `angular:packages/core/src/di/r3_injector.ts:L374-L376`) e ri-registrerebbe le opzioni del parent. Inoltre un `forChild` finito nell'injector root fa girare la factory sia via `MODULE_INITIALIZER` (`core-libs/core/src/lazy-loading/lazy-loading.module.ts:L44-L49`) sia accanto a `forRoot` (`core-libs/storefront/cms-structure/outlet/outlet.module.ts:L58-L66`). ⚠️ DA VERIFICARE a runtime: dipende da come i feature module sono caricati (eager o lazy) nell'app.
-- **T21 — Environment injector del componente.** Con `forRoot` la factory è legata al root `NgModuleRef`, con `forChild` a quello lazy; quell'`NgModuleRef` diventa l'environment injector del componente, indipendentemente da dove sta l'outlet (`angular:packages/core/src/render3/component_ref.ts:L282-L286`, `angular:packages/core/src/linker/view_container_ref.ts:L536-L537`). Un componente che dipende da servizi forniti da un modulo lazy deve quindi essere registrato con `forChild` in quel modulo.
+- **T21 — Environment injector del componente.** Con `forRoot` la factory è legata al `NgModuleRef` root (con `bootstrapApplication`, come nell'app demo, è un `EnvironmentNgModuleRefAdapter`: `angular:packages/core/src/application/create_application.ts:L72-L72`, `angular:packages/core/src/render3/ng_module_ref.ts:L147-L148`), con `forChild` all'`NgModuleRef` lazy; quel `NgModuleRef` diventa l'environment injector del componente, indipendentemente da dove sta l'outlet (`angular:packages/core/src/render3/component_ref.ts:L282-L286`, `angular:packages/core/src/linker/view_container_ref.ts:L536-L537`). Un componente che dipende da servizi forniti da un modulo lazy deve quindi essere registrato con `forChild` in quel modulo.
 - **T22 — API Angular deprecate.** `ComponentFactoryResolver`, `ComponentFactory` (`angular:packages/core/src/linker/component_factory_resolver.ts:L38-L41`, `angular:packages/core/src/linker/component_factory.ts:L91-L94`), l'overload factory di `createComponent` (`angular:packages/core/src/linker/view_container_ref.ts:L263-L270`) e `APP_INITIALIZER` (`angular:packages/core/src/application/application_init.ts:L38-L38`) sono deprecati; il registro è tipato su `ComponentFactory` (`core-libs/storefront/cms-structure/outlet/outlet.service.ts:L13-L13`).
 - **T23 — Classi componente ignorate.** Passare a `OutletService.add` una classe componente invece di una factory non produce nulla (`core-libs/storefront/cms-structure/outlet/outlet.directive.ts:L167-L190`).
 - **T24 — Esempio demo incoerente.** Il template demo legge `model.sections$` ma `PageLayoutComponent` fornisce `section$` (`projects/storefrontapp/src/test-outlets/test-outlet-template/test-outlet-template.component.html:L7-L7`, `core-libs/storefront/cms-structure/page/page-layout/page-layout.component.html:L8-L8`).
@@ -631,7 +636,7 @@ providers: [
 1. **Il mio componente non compare.** Verificare in ordine:
    - che il modulo con `provideOutlet` importi `OutletModule.forChild()` se è lazy, oppure che le opzioni finiscano nel root injector dove opera `forRoot()` (`core-libs/storefront/cms-structure/outlet/outlet.module.ts:L54-L88`);
    - che `id` coincida esattamente con il valore stringa usato in `[cxOutlet]` (gli enum hanno valori come `'cx-order-summary'`, `feature-libs/cart/base/root/models/cart-outlets.model.ts:L18-L18`);
-   - lo stato del registro: da un componente o dalla console di debug, `inject(OutletService).get('nome', OutletPosition.AFTER, true)` mostra l'array (`core-libs/storefront/cms-structure/outlet/outlet.service.ts:L53-L66`). Con Angular DevTools / `ng.getInjector(...)` si può ottenere l'istanza root del servizio. ⚠️ DA VERIFICARE: l'uso di `ng.getInjector` in console dipende dalla build in dev mode, non verificato nel repo;
+   - lo stato del registro: da un componente (injection context), `inject(OutletService).get('nome', OutletPosition.AFTER, true)` mostra l'array (`core-libs/storefront/cms-structure/outlet/outlet.service.ts:L53-L66`). Dalla console `inject()` non funziona: in dev mode si può usare `ng.getInjector(el).get(...)` passando la stringa `'after'`, perché i valori dell'enum sono stringhe (`core-libs/storefront/cms-structure/outlet/outlet.model.ts:L9-L13`). ⚠️ DA VERIFICARE: l'uso di `ng.getInjector` in console dipende dalla build in dev mode, non verificato nel repo;
    - se l'aggiunta è avvenuta dopo il render, forzarlo con `OutletRendererService.render('nome')` (`core-libs/storefront/cms-structure/outlet/outlet-renderer.service.ts:L24-L28`) e vedere se compare (conferma T6).
 2. **Il contenuto di default è sparito.** Controllare se la chiave REPLACE esiste con array vuoto (T3): `get(nome, OutletPosition.REPLACE, true)` restituisce `[]` invece di `undefined`.
 3. **Vedo il mio componente due volte.** Cercare doppie `provideOutlet` (T19) o doppie esecuzioni della factory (T20); un breakpoint in `OutletService.add` (`core-libs/storefront/cms-structure/outlet/outlet.service.ts:L36-L41`) mostra chiamante e stack.

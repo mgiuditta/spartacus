@@ -776,11 +776,11 @@ Tutto ciò che segue è esportato da `@spartacus/core` tramite `core-libs/core/p
 
 **Ricette (Parte III)**
 
-- Sostituire o aggiungere un componente CMS tramite `cmsComponents`, page layout e struttura statica: [Parte III, capitolo 51 — Ricette: componenti CMS, outlet, route e layout](../parte-3/51-ricette-cms-outlet-layout.md).
-- Adapter e converter custom (es. `CmsPageAdapter` verso un CMS terzo, normalizer aggiuntivo su `CMS_PAGE_NORMALIZER`), endpoint OCC e meta resolver: [Parte III, capitolo 52 — Ricette: OCC, adapter, converter, endpoint, meta resolver](../parte-3/52-ricette-occ-dati.md).
-- Override di service/facade via DI (es. `CmsService`, `CmsStructureConfigService`) e di configurazione: [Parte III, capitolo 50 — Ricette: configurazione, DI, interceptor, eventi](../parte-3/50-ricette-config-di.md).
-- Feature lazy con `featureModules[x].cmsComponents`: [Parte III, capitolo 53 — Ricette: feature lib lazy, carrello/checkout, stili, traduzioni](../parte-3/53-ricette-feature-cart-checkout-stili-i18n.md).
-- Cosa è API pubblica (es. `serializePageContext` non lo è) e cosa si rompe negli upgrade: [Parte III, capitolo 54 — API pubblica vs interna, upgrade, anti-pattern, checklist](../parte-3/54-upgrade-safe.md).
+- Sostituire o aggiungere un componente CMS tramite `cmsComponents`, page layout e struttura statica: `../parte-3/51-ricette-cms-outlet-layout.md` (cap. 51).
+- Adapter e converter custom (es. `CmsPageAdapter` verso un CMS terzo, normalizer aggiuntivo su `CMS_PAGE_NORMALIZER`), endpoint OCC e meta resolver: `../parte-3/52-ricette-occ-dati.md` (cap. 52).
+- Override di service/facade via DI (es. `CmsService`, `CmsStructureConfigService`) e di configurazione: `../parte-3/50-ricette-config-di.md` (cap. 50).
+- Feature lazy con `featureModules[x].cmsComponents`: `../parte-3/53-ricette-feature-cart-checkout-stili-i18n.md` (cap. 53).
+- Cosa è API pubblica (es. `serializePageContext` non lo è) e cosa si rompe negli upgrade: `../parte-3/54-upgrade-safe.md` (cap. 54).
 
 Schizzo illustrativo (non presente nel repo) di un adapter di pagina per un CMS terzo, che usa solo simboli esportati da `@spartacus/core`:
 
