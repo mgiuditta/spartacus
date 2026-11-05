@@ -13,3 +13,4 @@ Esito: <n problemi> (falso: a, non supportato: b, riferimento errato: c, impreci
 ```
 Controlla almeno l'80% dei riferimenti; dai priorità a sezioni 3, 5, 6, 9. NON modificare il capitolo. Rispondi con il conteggio per categoria.
 - Esegui anche `python3 tools/check-refs.py <capitolo>` e includi gli errori nella review come "riferimento errato".
+- I link verso capitoli previsti in OUTLINE.md ma non ancora scritti NON sono problemi: non elencarli.
