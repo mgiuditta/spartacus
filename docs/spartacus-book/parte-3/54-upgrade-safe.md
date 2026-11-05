@@ -30,7 +30,7 @@ Capitoli collegati: il meccanismo dei toggle e delle deprecazioni è in [42 — 
 | `core-libs/core/public_api.ts` | superficie pubblica di core: 27 barrel + blocco `AUGMENTABLE_TYPES_START`…`_END` |
 | `core-libs/storefront/public_api.ts` | superficie pubblica di storefront: 11 barrel + `ICON_TYPE`, `BREAKPOINT`, `LAUNCH_CALLER` augmentabili |
 | `core-libs/setup/public_api.ts`, `core-libs/setup/ssr/public_api.ts` | `@spartacus/setup` e l'entry point secondario SSR |
-| `feature-libs/**/ng-package.json`, `feature-libs/**/public_api.ts` | entry point secondari (`@spartacus/<lib>/<entry>`), 314 in tutto |
+| `feature-libs/**/ng-package.json`, `feature-libs/**/public_api.ts` | entry point delle feature lib (`@spartacus/<lib>` e `@spartacus/<lib>/<entry>`): 217 `ng-package.json` sotto `feature-libs`; nel repo sono 314 in tutto (core-libs 5, feature-libs 217, integration-libs 92), entry point primari inclusi (conteggio con `git ls-files <dir> \| grep -c 'ng-package.json$'`) |
 | `docs/libs/library-structure.md` | convenzione `root/` (eager) vs `core/`, `components/`, `occ/` (lazy) |
 | `tools/build-lib/declaration-merging/index.ts` | builder usato dalle librerie: riscrive i `declare module` relativi nel `.d.ts` appiattito |
 | `tools/build-lib/augmented-types/index.ts` | builder storico (registrato, non usato) per spostare il blocco augmentabile |
@@ -82,7 +82,7 @@ I segnali reali sono tre.
 |---|---|---|---|
 | `LazyLoadingModule` | `core-libs/core/src/lazy-loading/lazy-loading.module.ts` | `core-libs/core/src/lazy-loading/index.ts:L7-L12` | importato da `BaseCoreModule` (`core-libs/core/src/base-core.module.ts:L41-L41`) |
 | `CombinedInjector` | `core-libs/core/src/util/combined-injector.ts:L27-L27` | `core-libs/core/src/util/index.ts:L7-L29` | — |
-| `TRANSFER_STATE_META_REDUCER`, `CX_KEY` | `core-libs/core/src/state/reducers/transfer-state.reducer.ts:L16-L16` | `core-libs/core/src/state/index.ts:L7-L11` (non riesporta `reducers`) | — |
+| `TRANSFER_STATE_META_REDUCER`, `CX_KEY` | `CX_KEY` in `core-libs/core/src/state/reducers/transfer-state.reducer.ts:L16-L16`; `TRANSFER_STATE_META_REDUCER` in `core-libs/core/src/state/reducers/index.ts:L23-L25` | `core-libs/core/src/state/index.ts:L7-L11` (non riesporta `reducers`) | — |
 | `HttpErrorInterceptor` | `core-libs/core/src/global-message/http-interceptors/http-error.interceptor.ts` | `core-libs/core/src/global-message/http-interceptors/index.ts:L20-L22` (solo importato) | `HttpErrorHandler` + `errorHandlers` |
 | `provideMultiErrorHandler()` | `core-libs/core/src/error-handling/multi-error-handler/provide-multi-error-handler.ts:L11-L19` | `core-libs/core/src/error-handling/multi-error-handler/index.ts:L7-L8` | `MULTI_ERROR_HANDLER` (`core-libs/core/src/error-handling/multi-error-handler/multi-error-handler.ts:L25-L25`) |
 | `CouponSearchPageResolver` | `core-libs/core/src/product/services/coupon-search-page-meta.resolver.ts:L33-L33` | `core-libs/core/src/product/services/index.ts:L7-L11` | — |
@@ -117,7 +117,7 @@ Due elementi sono pubblici pur non essendo simboli a sé.
 
 Le librerie stesse usano questo canale: `@spartacus/checkout/b2b/root` estende `enum CheckoutStepType` e `interface CheckoutState` di `@spartacus/checkout/base/root` e poi aggiunge il valore runtime con un cast (`feature-libs/checkout/b2b/root/model/augmented-types.ts:L11-L23`); `@spartacus/order/root` fa lo stesso su `LAUNCH_CALLER` (`feature-libs/order/root/model/augmented.model.ts:L7-L20`). Gli enum augmentabili sono `enum` normali (`core-libs/storefront/layout/launch-dialog/config/launch-config.ts:L93-L93`) e una regola ESLint vieta i `const enum` (`tools/eslint-rules/rules/no-const-enum.ts:L11-L24`).
 
-Lato build, il builder usato da core, storefront e altre 16 librerie è `./tools/build-lib:declaration-merging` (`core-libs/core/project.json:L8-L13`): dopo ng-packagr riscrive ogni `declare module '<path relativo>'` del `.d.ts` appiattito in `declare module './<typings>'`, escludendo con la regex i moduli `@spartacus…` (`tools/build-lib/declaration-merging/index.ts:L108-L126`). Il builder storico `augmented-types`, che spostava il blocco augmentabile nel `.d.ts` radice, è registrato ma non usato (`tools/build-lib/builders.json:L1-L14`, `tools/build-lib/augmented-types/index.ts:L20-L32`). ⚠️ DA VERIFICARE se con ng-packagr 21 il blocco `AUGMENTABLE_TYPES_START`…`_END` sia ancora necessario: senza `node_modules`/`dist` non si può controllare il `.d.ts` prodotto.
+Lato build, il builder usato da core, storefront e altre 16 librerie è `./tools/build-lib:declaration-merging` (`core-libs/core/project.json:L8-L13`): dopo ng-packagr riscrive in `declare module './<typings>'` i `declare module` del `.d.ts` appiattito il cui nome **non** inizia con uno dei caratteri `@spartacu` (la regex usa la classe di caratteri `[^\@spartacus]`, non un prefisso negato): in pratica vengono riscritti solo i path relativi (`./`, `../`), il che esclude anche i moduli `@spartacus/*` (`tools/build-lib/declaration-merging/index.ts:L108-L126`). Il builder storico `augmented-types`, che spostava il blocco augmentabile nel `.d.ts` radice, è registrato ma non usato (`tools/build-lib/builders.json:L1-L14`, `tools/build-lib/augmented-types/index.ts:L20-L32`). ⚠️ DA VERIFICARE se con ng-packagr 21 il blocco `AUGMENTABLE_TYPES_START`…`_END` sia ancora necessario: senza `node_modules`/`dist` non si può controllare il `.d.ts` prodotto.
 
 ### 3.2 Cosa si rompe negli upgrade
 
@@ -152,7 +152,7 @@ I dati sono generati dal tool ("Generated file, don't update manually", `core-li
 | API pubblica rimossa | no, inserisce `// TODO:Spartacus -` sopra l'import | `core-libs/schematics/src/migrations/mechanism/removed-public-api-deprecations/removed-public-api-deprecation.ts:L19-L53` |
 | Rename/move di simboli | sì, riscrive l'import | `core-libs/schematics/src/migrations/221121_7/rename-symbol/data/generated-rename-symbols.migration.ts:L11-L17` |
 
-Volumi della `221121_7`: 3 costruttori, 48 metodi/proprietà, 49 simboli rimossi, 1 rename (F73 del dossier); il documento generato riporta 49 voci "has been removed and is no longer part of the public API" (`docs/migration/221121_7/generated-typescript-changes-doc.md:L1-L5`). Il marcatore comune è `TODO_SPARTACUS = 'TODO:Spartacus -'` (`core-libs/schematics/src/shared/constants.ts:L1145-L1145`).
+Volumi della `221121_7`: 3 costruttori, 48 metodi/proprietà, 49 simboli rimossi, 1 rename (F73 del dossier); il documento generato riporta 49 voci "has been removed and is no longer part of the public API" (`grep -c "has been removed and is no longer part of the public API" docs/migration/221121_7/generated-typescript-changes-doc.md` → 49; prima occorrenza `docs/migration/221121_7/generated-typescript-changes-doc.md:L13-L13`). Il marcatore comune è `TODO_SPARTACUS = 'TODO:Spartacus -'` (`core-libs/schematics/src/shared/constants.ts:L1145-L1145`).
 
 La guida `221121_7` prescrive di aggiornare prima Angular a 20 e poi a 21, quindi `ng update @spartacus/schematics@221121.7`, con fallback manuale (`docs/migration/221121_7/migration.md:L16-L16`, `docs/migration/221121_7/migration.md:L96-L96`, `docs/migration/221121_7/migration.md:L108-L114`). A ogni major le migrazioni della major precedente vengono rimosse (`docs/libs/major-release-checklist.md:L15-L16`). ⚠️ DA VERIFICARE il comportamento di `ng update` su un salto di più major: la logica di selezione delle migrazioni è nell'Angular CLI, che non è nel repo.
 
@@ -221,7 +221,7 @@ import { HttpErrorInterceptor } from '@spartacus/core/src/global-message/http-in
 export class MyErrorInterceptor extends HttpErrorInterceptor { /* ... */ }
 ```
 
-`HttpErrorInterceptor` è solo importato da `http-interceptors/index.ts`, che espone invece `errorHandlers` e `httpErrorInterceptors` (`core-libs/core/src/global-message/http-interceptors/index.ts:L20-L22`). Il punto di estensione progettato è `HttpErrorHandler`, una classe astratta pubblica con `responseStatus`, `abstract handleError(...)`, `hasMatch()` e `abstract getPriority?()` (`core-libs/core/src/global-message/http-interceptors/handlers/http-error.handler.ts:L33-L44`, `core-libs/core/src/global-message/http-interceptors/handlers/http-error.handler.ts:L61-L61`), registrata come multi provider (`core-libs/core/src/global-message/http-interceptors/index.ts:L22-L33`).
+`HttpErrorInterceptor` è solo importato da `http-interceptors/index.ts`, che espone invece `errorHandlers` e `httpErrorInterceptors` (`core-libs/core/src/global-message/http-interceptors/index.ts:L20-L22`). Il punto di estensione progettato è `HttpErrorHandler`, una classe astratta pubblica con `responseStatus`, `abstract handleError(...)`, `hasMatch()` e `abstract getPriority?()` (`core-libs/core/src/global-message/http-interceptors/handlers/http-error.handler.ts:L15-L44`, `core-libs/core/src/global-message/http-interceptors/handlers/http-error.handler.ts:L61-L61`), registrata come multi provider (`core-libs/core/src/global-message/http-interceptors/index.ts:L22-L33`).
 
 ```ts
 // CORRETTO: un handler in più sul multi provider pubblico
@@ -253,7 +253,7 @@ export class MyGatewayTimeoutHandler extends HttpErrorHandler {
 { provide: HttpErrorHandler, useExisting: MyGatewayTimeoutHandler, multi: true }
 ```
 
-Lo schema ricalca `GatewayTimeoutHandler` (`core-libs/core/src/global-message/http-interceptors/handlers/gateway/gateway-timeout.handler.ts:L13-L29`); `Priority` e la risoluzione per priorità stanno in `core-libs/core/src/util/applicable.ts:L7-L7` e `core-libs/core/src/util/applicable.ts:L44-L61`. Il dettaglio della scelta dell'handler è in [41 — Errori e global message](../parte-2/41-errori-global-message.md); ricetta: [50 — interceptor](../parte-3/50-ricette-config-di.md).
+Lo schema ricalca `GatewayTimeoutHandler` (`core-libs/core/src/global-message/http-interceptors/handlers/gateway/gateway-timeout.handler.ts:L13-L29`); `Priority` e la risoluzione per priorità stanno in `core-libs/core/src/util/applicable.ts:L7-L7` e `core-libs/core/src/util/applicable.ts:L47-L87` (JSDoc della regola di priorità a L47-L61, implementazione di `resolveApplicable` a L63-L87). Il dettaglio della scelta dell'handler è in [41 — Errori e global message](../parte-2/41-errori-global-message.md); ricetta: [50 — interceptor](../parte-3/50-ricette-config-di.md).
 
 #### AP3 — Dipendere dall'implementazione concreta di una facade
 
@@ -307,7 +307,7 @@ export class MyAddToCartComponent extends AddToCartComponent {
 }
 ```
 
-`ProductAvailabilityService` è pubblico via `core-libs/core/src/product/facade/index.ts:L14-L14`; `FeatureToggles` via `core-libs/core/src/features-config/index.ts:L10-L10`. È esattamente l'azione richiesta dal manuale: "inject `FeatureConfigService` directly within that subclass as a `private` property" (`docs/migration/221121_7/221121_7-typescript-manual.doc.md:L148-L150`), oggi preferibilmente con `FeatureToggles`, letto come proprietà come fa `PaginationComponent` (`core-libs/storefront/shared/components/list-navigation/pagination/pagination.component.ts:L64-L67`, `core-libs/storefront/shared/components/list-navigation/pagination/pagination.component.ts:L120-L120`). Ricetta per sostituire componenti CMS: [51](../parte-3/51-ricette-cms-outlet-layout.md).
+`ProductAvailabilityService` è pubblico via `core-libs/core/src/product/facade/index.ts:L14-L14`; `FeatureToggles` via `core-libs/core/src/features-config/index.ts:L10-L10`. È esattamente l'azione richiesta dal manuale: "inject `FeatureConfigService` directly within that subclass as a `private` property" (`docs/migration/221121_7/221121_7-typescript-manual.doc.md:L147-L147`), oggi preferibilmente con `FeatureToggles`, letto come proprietà come fa `PaginationComponent` (`core-libs/storefront/shared/components/list-navigation/pagination/pagination.component.ts:L64-L67`, `core-libs/storefront/shared/components/list-navigation/pagination/pagination.component.ts:L120-L120`). Ricetta per sostituire componenti CMS: [51](../parte-3/51-ricette-cms-outlet-layout.md).
 
 Variante della stessa trappola: `LaunchDialogService` (pubblico) espone `protected autoFocusService` di tipo `AutoFocusService`, che non è esportato (`core-libs/storefront/layout/launch-dialog/services/launch-dialog.service.ts:L17-L17`, `core-libs/storefront/layout/launch-dialog/services/launch-dialog.service.ts:L30-L30`, `core-libs/storefront/layout/a11y/keyboard-focus/index.ts:L17-L17`). La sottoclasse vede il membro ma non può nominarne il tipo dal public API: va trattato come non contrattuale.
 
@@ -370,7 +370,7 @@ Il metodo è pubblico solo per necessità tecniche: "Not a part of a public API,
 
 ```ts
 // CORRETTO: registrare un ConfigInitializer e attendere la stabilità
-import { inject } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import {
   ConfigInitializer,
   ConfigInitializerService,
@@ -421,7 +421,7 @@ declare module '@spartacus/storefront/layout/launch-dialog/config/launch-config'
 }
 ```
 
-Il path non è un entry point: il builder `declaration-merging` riscrive i `declare module` relativi interni al pacchetto in `./<typings>` (`tools/build-lib/declaration-merging/index.ts:L108-L126`), quindi nel `.d.ts` pubblicato quel modulo non esiste come tale. I `const enum` sono vietati perché incompatibili con `isolatedModules` (`tools/eslint-rules/rules/no-const-enum.ts:L11-L24`).
+Il path non è un entry point: non esiste un `ng-package.json` per quel path, quindi TypeScript non risolve il modulo e l'augmentation non si fonde con il `LAUNCH_CALLER` pubblico, che è esportato dall'entry point `@spartacus/storefront` nel blocco augmentabile (`core-libs/storefront/public_api.ts:L32-L36`). Il builder `declaration-merging` riguarda solo i `declare module` relativi interni al `.d.ts` della libreria, in fase di build (`tools/build-lib/declaration-merging/index.ts:L108-L126`), e non tocca il codice del cliente. I `const enum` sono vietati perché incompatibili con `isolatedModules` (`tools/eslint-rules/rules/no-const-enum.ts:L11-L24`).
 
 ```ts
 // CORRETTO: entry point pubblico + valore runtime, come fanno le librerie Spartacus
@@ -468,7 +468,7 @@ Ogni voce è verificabile con un comando o una lettura puntuale.
 - [ ] Le sostituzioni passano da classi/token pubblici: facade astratte di `root/`, `HttpErrorHandler`, `MULTI_ERROR_HANDLER`, adapter/converter pubblici (AP2, AP3).
 - [ ] Le sottoclassi usano solo membri `protected`/`public` della classe padre e iniettano da sé tutto il resto (AP4).
 - [ ] Nessuna sottoclasse usa membri della classe padre il cui tipo non sia importabile dal public API (`LaunchDialogService.autoFocusService`, AP4).
-- [ ] `FeatureToggles` e `FeatureConfigService` iniettati nelle proprie classi come `private` (`eslint.config.mjs:L186-L191`).
+- [ ] `FeatureToggles` e `FeatureConfigService` iniettati nelle proprie classi come `private` (`eslint.config.mjs:L255-L256`, regole `@nx/workspace-feature-config-service-must-be-private` e `@nx/workspace-feature-toggles-must-be-private` a severità `error`; motivazione in `tools/eslint-rules/rules/feature-toggles-must-be-private.ts:L11-L26`).
 - [ ] Gli override di costruttore usano `inject()` o firme identiche all'ultima versione: dopo l'upgrade nessun `// TODO:Spartacus -` resta irrisolto (`grep -rn "TODO:Spartacus" src/` vuoto).
 
 **Configurazione e toggle**
@@ -485,7 +485,7 @@ Ogni voce è verificabile con un comando o una lettura puntuale.
 
 **Processo di upgrade**
 
-- [ ] Aggiornamento in sequenza: Angular → `ng update @spartacus/schematics@<versione>` per ogni major, senza saltarne (`docs/migration/221121_7/migration.md:L108-L114`, `docs/libs/major-release-checklist.md:L15-L16`).
+- [ ] Aggiornamento in sequenza: prima Angular, poi `ng update @spartacus/schematics@<versione>` (`docs/migration/221121_7/migration.md:L106-L114`). Poiché a ogni major le migrazioni precedenti vengono rimosse (`docs/libs/major-release-checklist.md:L15-L15`), conviene passare per ogni major ⚠️ DA VERIFICARE: la logica con cui `ng update` seleziona le migrazioni su un salto di più major sta nella Angular CLI, non in questo repo.
 - [ ] Dopo `ng update`: risolti tutti i `// TODO:Spartacus -`, letti il manuale TypeScript e il documento generato della versione (`docs/migration/<v>/`).
 - [ ] Rivisti i toggle disattivati esplicitamente nell'app: ognuno ha un owner e un piano di attivazione prima della major che lo rimuoverà.
 - [ ] Test (unit + e2e) delle estensioni eseguiti con tutti i toggle a `true`, come fa la storefrontapp (`tools/eslint-rules/rules/no-storefrontapp-false-feature-toggles.ts:L33-L40`).
@@ -732,7 +732,7 @@ declare module '@spartacus/checkout/base/root' {
 | `compiler.tsconfigFilePath` | path | `<projectFolder>/tsconfig.api-extractor.json` | `tools/breaking-changes/api-extractor.json:L66-L66` | API Extractor |
 | `strict` (tsconfig API Extractor) | boolean | `false` | `tsconfig.api-extractor.json:L4-L6` | API Extractor |
 | costanti BASE_BRANCH_DIR, BUILD_DIR, REPORT_DIR | string | `branch-clone` / `dist` / `etc` | `.github/api-extractor-action/src/const.ts:L7-L9` | `.github/api-extractor-action/src/api-extractor.ts:L158-L161` |
-| `features.disableConfigUpdates` | boolean (legacy) | non definito → mutazioni in-place attive | `core-libs/core/src/features-config/config/features-config.ts` (cap. 42) | `core-libs/core/src/config/services/configuration.service.ts:L103-L105` |
+| `features.disableConfigUpdates` | boolean (legacy) | non definito → mutazioni in-place attive | `core-libs/core/src/features-config/config/features-config.ts:L116-L116`; chiave accettata da `isFeatureEnabled` in `core-libs/core/src/features-config/utils/feature-config-utils.ts:L50-L50` (cap. 42) | `core-libs/core/src/config/services/configuration.service.ts:L103-L105` |
 | `import/no-deprecated` | severità ESLint | `warn` | `eslint.config.mjs:L124-L124` | ESLint |
 | `no-restricted-syntax` (inject protected) | severità ESLint | `warn` | `eslint.config.mjs:L179-L192` | ESLint |
 | `@nx/workspace-feature-config-service-must-be-private`, `@nx/workspace-feature-toggles-must-be-private` | severità ESLint | `error` | `eslint.config.mjs:L255-L256` | ESLint |
