@@ -148,7 +148,7 @@ Quando una libreria ha **estensioni** da altre librerie, la demo non punta `modu
 | `CustomerTicketingWrapperModule` | modulo lib | `CdpCustomerTicketingModule` (`cdp`) | `projects/storefrontapp/src/app/spartacus/features/customer-ticketing/customer-ticketing-wrapper.module.ts:L13-L22` |
 | `RulebasedConfiguratorWrapperModule` | modulo lib | `RulebasedCpqConfiguratorModule` (`cpq`) | `projects/storefrontapp/src/app/spartacus/features/product-configurator/rulebased-configurator-wrapper.module.ts:L12-L21` |
 
-I wrapper sono 9 e sono raggiunti solo con `import()` dinamico da `featureModules` (`projects/storefrontapp/src/app/spartacus/features/cart/cart-base-feature.module.ts:L29-L32`, `projects/storefrontapp/src/app/spartacus/features/checkout/checkout-feature.module.ts:L81-L84`). Il flag `cdp` viene usato **solo** nel wrapper del customer ticketing: non esiste un `CdpFeatureModule` (`projects/storefrontapp/src/app/spartacus/features/customer-ticketing/customer-ticketing-wrapper.module.ts:L13-L22`).
+I wrapper sono 9 e sono raggiunti solo con `import()` dinamico da `featureModules` (`projects/storefrontapp/src/app/spartacus/features/cart/cart-base-feature.module.ts:L29-L32`, `projects/storefrontapp/src/app/spartacus/features/checkout/checkout-feature.module.ts:L81-L84`). Il flag `cdp` viene usato **solo** nel wrapper del customer ticketing: non esiste alcun feature module CDP dedicato (`projects/storefrontapp/src/app/spartacus/features/customer-ticketing/customer-ticketing-wrapper.module.ts:L13-L22`).
 
 Varianti degne di nota:
 
