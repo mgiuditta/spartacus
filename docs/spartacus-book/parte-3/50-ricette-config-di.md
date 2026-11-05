@@ -868,19 +868,19 @@ Riferimenti: `core-libs/core/src/config/config-providers.ts:L18-L79`, `core-libs
 
 ```mermaid
 sequenceDiagram
-  participant C as "Componente (root)"
-  participant P as "OrderHistoryFacade (proxy root)"
-  participant F as "FacadeFactoryService"
-  participant M as "FeatureModulesService"
-  participant W as "Injector di CustomOrderWrapperModule"
-  participant S as "CustomOrderHistoryService"
+  participant C as Componente (root)
+  participant P as OrderHistoryFacade (proxy root)
+  participant F as FacadeFactoryService
+  participant M as FeatureModulesService
+  participant W as Injector di CustomOrderWrapperModule
+  participant S as CustomOrderHistoryService
   C->>P: loadOrderList(50)
   P->>F: call('loadOrderList', args) + connect()
   F->>M: resolveFeature('orderCore')
-  M->>M: alias orderCore -> order
+  M->>M: alias orderCore → order
   M->>W: import() + moduleFactory.create(parent)
   F->>W: injector.get(OrderHistoryFacade)
-  W-->>F: useExisting -> CustomOrderHistoryService
+  W-->>F: useExisting → CustomOrderHistoryService
   F->>S: loadOrderList(50) (dopo delay(0), async)
   S->>S: super.loadOrderList(20, ...)
 ```
@@ -891,14 +891,14 @@ Riferimenti: `feature-libs/order/root/facade/order-history.facade.ts:L19-L49`, `
 
 ```mermaid
 sequenceDiagram
-  participant A as "Adapter OCC"
-  participant H as "HttpInterceptorHandler (root)"
-  participant I1 as "Interceptor Spartacus (es. AuthInterceptor)"
-  participant I2 as "ShopHeadersInterceptor (custom)"
-  participant E as "HttpErrorInterceptor"
-  participant B as "Backend"
+  participant A as Adapter OCC
+  participant H as HttpInterceptorHandler (root)
+  participant I1 as Interceptor Spartacus (es. AuthInterceptor)
+  participant I2 as ShopHeadersInterceptor (custom)
+  participant E as HttpErrorInterceptor
+  participant B as Backend
   A->>H: http.get(url)
-  H->>H: prima richiesta: costruisce e mette in cache la catena HTTP_INTERCEPTORS
+  H->>H: alla prima richiesta costruisce e mette in cache la catena HTTP_INTERCEPTORS
   H->>I1: intercept(req)
   I1->>I1: AuthHttpHeaderService.alterRequest (isOccUrl)
   I1->>I2: next.handle(req)

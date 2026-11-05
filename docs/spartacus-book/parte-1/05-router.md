@@ -258,7 +258,7 @@ sequenceDiagram
     NT->>NG: "RoutesRecognized"
     NG->>ST: "ROUTER_NAVIGATION (CustomSerializer → nextState)"
     NT->>G: "GuardsCheckStart → canActivate()"
-    G->>B: "ProtectedRoutesGuard, FederatedLoginGuard, ... in serie"
+    G->>B: "ProtectedRoutesGuard, FederatedLoginGuard, ... (sottoscritti in serie)"
     B-->>G: "true | false | UrlTree"
     G->>ST: "getNextPageContext() (primo definito)"
     G->>CMS: "getPage(context, shouldReload)"
