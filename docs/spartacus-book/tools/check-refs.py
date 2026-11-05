@@ -34,7 +34,7 @@ def sym_exists(s):
     ok=False
     for root,args in ((REPO,['core-libs','feature-libs','integration-libs','projects','tools','scripts','ci-scripts','package.json','nx.json','.env-cmdrc','tsconfig.json']),(NG,['packages'])):
         try:
-            r=subprocess.run(['grep','-rqw','--include=*.ts','--include=*.html','--include=*.scss','--include=*.json','--include=*.js','--include=*.mjs',name]+args,cwd=root,capture_output=True)
+            r=subprocess.run(['grep','-rqw','--include=*.ts','--include=*.html','--include=*.scss','--include=*.json','--include=*.js','--include=*.mjs','--include=*.sh','--include=*.yml','--include=*.cjs',name]+args,cwd=root,capture_output=True)
             if r.returncode==0: ok=True; break
         except Exception: pass
     _symcache[s]=ok; return ok
