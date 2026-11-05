@@ -448,7 +448,7 @@ Si noti l'operatore `>` stretto: è ciò che fa vincere l'ultimo a parità di pr
 
 ### 5.3 `tryNormalizeHttpError`
 
-`core-libs/core/src/util/try-normalize-http-error.ts:L21-L57`
+`core-libs/core/src/util/try-normalize-http-error.ts:L21-L58`
 ```ts
 export function tryNormalizeHttpError(
   error: HttpErrorResponse | HttpErrorModel | any,
