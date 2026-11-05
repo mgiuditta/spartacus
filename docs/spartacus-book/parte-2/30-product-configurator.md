@@ -843,7 +843,7 @@ Le abstract class di config sono `ConfiguratorCoreConfig` (`feature-libs/product
 Limiti dell'estendibilità:
 
 - Il textfield **non** esporta adapter, connector, facade, state e token converter: `feature-libs/product-configurator/textfield/core/index.ts:L7-L7` esporta solo il core module, e `feature-libs/product-configurator/textfield/public_api.ts:L7-L10` solo core module, componenti e occ. Usarlo come "template" significa copiarlo, non estenderlo.
-- `CpqConfiguratorPageLayoutHandler` non è esportato da `rulebased/root/cpq` (l'index esporta solo i moduli) — ⚠️ DA VERIFICARE: il dossier riporta `cpq/index.ts:L7-L10` senza l'elenco completo.
+- `CpqConfiguratorPageLayoutHandler` non è esportato: `feature-libs/product-configurator/rulebased/root/cpq/index.ts:L7-L10` esporta solo i quattro moduli CPQ, mentre `VariantConfiguratorPageLayoutHandler` è pubblico — `feature-libs/product-configurator/rulebased/root/variant/index.ts:L11-L11`. Per cambiare il comportamento CPQ si registra un proprio `PAGE_LAYOUT_HANDLER` invece di estendere la classe.
 - Un nuovo configuratore rulebased richiede in pratica: un `configuratorType` nuovo, route `configure<TYPE>`/`configureOverview<TYPE>` con route Angular `path: null` + `cxRoute`, un adapter nel token multi, un layout per il template CMS. Tutti questi pezzi esistono come pattern nel codice VC/CPQ (§3.1–§3.10); una guida passo-passo non esiste nel repo.
 
 ## 9. Trappole, casi limite, comportamenti controintuitivi
