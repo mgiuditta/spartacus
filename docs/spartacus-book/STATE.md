@@ -24,3 +24,4 @@
 - 00:02 Counter({'todo': 30, 'scritto': 16, 'dossier': 5}). Coda: A43 A44 A45 A46 A47 A02 A03 A04 A06 A08 A50-54
 - 00:04 RIAVVIO CONTAINER: 19 agenti interrotti, ripresi via SendMessage
 - 00:11 Counter({'scritto': 20, 'todo': 18, 'dossier': 13}). Coda: A47 A02 A03 A04 A06 A08 A50-54
+- 00:20 Counter({'scritto': 30, 'todo': 14, 'dossier': 7}). Coda: A54, poi Fase 4
