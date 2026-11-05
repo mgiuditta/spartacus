@@ -243,7 +243,7 @@ Quando nel backend è stato definito un **nuovo tipo** di componente CMS (o un `
 
 #### Esempio
 
-> Esempio illustrativo, non presente nel repo. `PromoBannerComponent` è un tipo CMS ipotetico definito nel backend.
+> Esempio illustrativo, non presente nel repo. *PromoBannerComponent* è un tipo CMS ipotetico definito nel backend.
 
 ```typescript
 // promo-banner.module.ts — esempio illustrativo, non presente nel repo
@@ -477,7 +477,7 @@ Catene di export:
 
 #### Perché funziona (file sorgente)
 
-- `OutletRefDirective` registra il proprio `TemplateRef` in `ngOnInit` e lo rimuove in `ngOnDestroy` (`core-libs/storefront/cms-structure/outlet/outlet-ref/outlet-ref.directive.ts:L17-L36`), quindi le registrazioni durano quanto `FaqPageComponent`.
+- `OutletRefDirective` registra il proprio `TemplateRef` in `ngOnInit` e lo rimuove in `ngOnDestroy` (`core-libs/storefront/cms-structure/outlet/outlet-ref/outlet-ref.directive.ts:L17-L36`), quindi le registrazioni durano quanto *FaqPageComponent*.
 - Un `TemplateRef` è reso con `{ $implicit: cxOutletContext }`, da cui `let-model` (`core-libs/storefront/cms-structure/outlet/outlet.directive.ts:L175-L189`).
 - Gli outlet di sistema e i loro contesti: template/section con `templateName$`, `slots$`, `section$` (`core-libs/storefront/cms-structure/page/page-layout/page-layout.component.html:L1-L18`); slot con `components$`, componente con `component` (`core-libs/storefront/cms-structure/page/slot/page-slot.component.html:L1-L17`).
 - Modello reale: la demo `TestOutletComponentComponent` mette `<cx-page-layout />` e tre `cxOutletRef` (before/after/replace) su `CMSParagraphComponent` nello stesso template (`projects/storefrontapp/src/test-outlets/test-outlet-component/test-outlet-component.component.html:L1-L13`), standalone con `PageLayoutComponent` + `OutletRefDirective` (`projects/storefrontapp/src/test-outlets/test-outlet-component/test-outlet-component.component.ts:L10-L17`); varianti su slot e template in `projects/storefrontapp/src/test-outlets/test-outlet-slot/test-outlet-slot.component.html:L1-L27` e `projects/storefrontapp/src/test-outlets/test-outlet-template/test-outlet-template.component.html:L1-L25`.
@@ -488,13 +488,13 @@ Catene di export:
 - **REPLACE sul template di pagina** sostituisce tutto: `ng-content` e tutti gli slot (`core-libs/storefront/cms-structure/page/page-layout/page-layout.component.html:L1-L18`).
 - **Ordine di istanziazione**: la direttiva registra nel suo `ngOnInit`; il contenitore deve esistere prima o insieme all'outlet bersaglio (nella demo è nello stesso template di `<cx-page-layout />`) (`core-libs/storefront/cms-structure/outlet/outlet-ref/outlet-ref.directive.ts:L29-L31`).
 - **Contesto fissato**: per i template `$implicit` è impostato alla creazione; se il contesto cambia, la vista non si aggiorna (usare gli observable del contesto, come `components$`) (`core-libs/storefront/cms-structure/outlet/outlet.directive.ts:L97-L99`, `core-libs/storefront/cms-structure/outlet/outlet.directive.ts:L176-L181`).
-- **Registro globale**: mentre `FaqPageComponent` è vivo, il template "after `CMSParagraphComponent`" vale per **ogni** paragrafo renderizzato, anche fuori dalla pagina FAQ (es. header/footer), perché `OutletService` è indicizzato solo per nome (`core-libs/storefront/cms-structure/outlet/outlet.service.ts:L31-L42`).
+- **Registro globale**: mentre *FaqPageComponent* è vivo, il template "after `CMSParagraphComponent`" vale per **ogni** paragrafo renderizzato, anche fuori dalla pagina FAQ (es. header/footer), perché `OutletService` è indicizzato solo per nome (`core-libs/storefront/cms-structure/outlet/outlet.service.ts:L31-L42`).
 
 ### 3.6 R6 — Route custom per una content page
 
 #### Quando usarlo
 
-Quando una content page CMS deve avere un URL diverso dalla sua label (o più alias), un nome semantico per costruire link con `cxUrl`, o un componente Angular proprio attorno al layout (come `FaqPageComponent` di R5). Senza route custom, una content page è già raggiungibile tramite la route `'**'` con l'URL uguale alla label (`core-libs/storefront/cms-structure/routing/cms-route/add-cms-route.ts:L12-L25`, `core-libs/core/src/routing/store/reducers/router.reducer.ts:L198-L205`).
+Quando una content page CMS deve avere un URL diverso dalla sua label (o più alias), un nome semantico per costruire link con `cxUrl`, o un componente Angular proprio attorno al layout (come *FaqPageComponent* di R5). Senza route custom, una content page è già raggiungibile tramite la route `'**'` con l'URL uguale alla label (`core-libs/storefront/cms-structure/routing/cms-route/add-cms-route.ts:L12-L25`, `core-libs/core/src/routing/store/reducers/router.reducer.ts:L198-L205`).
 
 #### Esempio
 
@@ -577,7 +577,7 @@ Quando il backend introduce un **nuovo page template** (o nuovi slot) e Spartacu
 
 #### Esempio
 
-> Esempio illustrativo, non presente nel repo. `FaqPageTemplate`, `FaqIntro`, `FaqBody`, `FaqAside` sono nomi ipotetici.
+> Esempio illustrativo, non presente nel repo. *FaqPageTemplate*, *FaqIntro*, *FaqBody*, *FaqAside* sono nomi ipotetici.
 
 ```typescript
 // faq-layout.module.ts — esempio illustrativo, non presente nel repo
@@ -646,7 +646,7 @@ Catene di export:
 
 #### Limiti e trappole
 
-- **Lo slot deve esistere nella pagina**: uno slot in `layoutSlots` che la pagina non contiene viene filtrato (`core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts:L117-L119`). Nell'esempio `FaqAside` non è nella pagina statica e quindi non viene reso.
+- **Lo slot deve esistere nella pagina**: uno slot in `layoutSlots` che la pagina non contiene viene filtrato (`core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts:L117-L119`). Nell'esempio *FaqAside* non è nella pagina statica e quindi non viene reso.
 - **Template senza config**: tutti gli slot della pagina nell'ordine delle chiavi + warning dev; una section senza config non rende nulla (`core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts:L120-L126`, `core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts:L251-L273`).
 - **Array sostituiti**: un `slots: [...]` rimpiazza l'intera lista del template (`core-libs/core/src/config/utils/deep-merge.ts:L36-L45`); `provideCmsStructure({ pageTemplate, pageSlotPosition })` genera `slots: [pageSlotPosition]` e può azzerare gli altri slot se fuso dopo (`core-libs/storefront/cms-structure/utils/cms-structure.util.ts:L78-L90`).
 - **Ordine rispetto a `layoutConfigFactory`**: nell'app demo è un `ConfigChunk` (`projects/storefrontapp/src/app/spartacus/spartacus-configuration.module.ts:L46-L46`); un chunk `layoutSlots` fornito prima di esso verrebbe sovrascritto per le chiavi in comune (`core-libs/core/src/config/config-tokens.ts:L37-L39`). Per un template nuovo il conflitto non c'è; per modificare un template esistente fornisci la tua config **dopo**.
@@ -1240,5 +1240,5 @@ Extension point **non** pubblici da evitare: `PROVIDE_OUTLET_OPTIONS` e `registe
    Nessuno: con più paths `configureRoute` cancella `path` e imposta un matcher costruito dai paths. — `core-libs/core/src/routing/configurable-routes/configurable-routes.service.ts:L98-L106`.
 9. **Che `PageContext` produce quella route, e con quale parametro la chiede l'adapter OCC?**
    `{ id: '/faq', type: ContentPage }`; l'adapter invia `pageLabelOrId=/faq`. — `core-libs/core/src/routing/store/reducers/router.reducer.ts:L193-L194`, `core-libs/core/src/occ/adapters/cms/occ-cms-page.adapter.ts:L95-L96`.
-10. **Ho aggiunto `FaqAside` a `layoutSlots.FaqPageTemplate.slots` ma non appare. Perché?**
-    `resolveSlots` mantiene solo gli slot presenti nella pagina CMS (o statica); se la pagina non ha `FaqAside`, viene filtrato. — `core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts:L117-L119`.
+10. **Ho aggiunto *FaqAside* a `layoutSlots` (template *FaqPageTemplate*) ma non appare. Perché?**
+    `resolveSlots` mantiene solo gli slot presenti nella pagina CMS (o statica); se la pagina non ha *FaqAside*, viene filtrato. — `core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts:L117-L119`.
