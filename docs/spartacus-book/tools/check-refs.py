@@ -21,7 +21,7 @@ def nlines(p):
 def resolve(path, ng):
     if ng=='deps:':
         p=os.path.join('/tmp/deps',path); return p if os.path.isfile(p) else None
-    roots=[NG] if ng else [REPO, NG]
+    roots=[NG] if ng else [REPO, book, NG]
     for r in roots:
         p=os.path.join(r,path)
         if os.path.isfile(p): return p
@@ -32,7 +32,7 @@ def sym_exists(s):
     if s in _symcache: return _symcache[s]
     name=s[:-2] if s.endswith('()') else s
     ok=False
-    for root,args in ((REPO,['core-libs','feature-libs','integration-libs','projects','tools','scripts','ci-scripts']),(NG,['packages'])):
+    for root,args in ((REPO,['core-libs','feature-libs','integration-libs','projects','tools','scripts','ci-scripts','package.json','nx.json','.env-cmdrc','tsconfig.json']),(NG,['packages'])):
         try:
             r=subprocess.run(['grep','-rqw','--include=*.ts','--include=*.html','--include=*.scss','--include=*.json','--include=*.js','--include=*.mjs',name]+args,cwd=root,capture_output=True)
             if r.returncode==0: ok=True; break
@@ -54,6 +54,9 @@ def check(md):
                 key=(path,a,b)
                 if key in seen: continue
                 seen.add(key)
+                ROOTS=('tools/extract','core-libs/','feature-libs/','integration-libs/','projects/','packages/','tools/','scripts/','ci-scripts/','docs/','.github/')
+                if not ng and not path.startswith(ROOTS) and '/' in path and not a:
+                    continue  # path non di repo senza riga (es. asset runtime, import npm): non verificabile
                 p=resolve(path, ng or '')
                 if not p:
                     if '*' in path or '<' in path: continue
