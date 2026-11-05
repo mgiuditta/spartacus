@@ -155,7 +155,7 @@ Ogni area ha un connector `providedIn: 'root'` che delega a un adapter astratto 
 - Con `authorizationCodeFlowByDefault` (default `true`, `core-libs/core/src/features-config/feature-toggles/config/feature-toggles.ts:L1029-L1029`) il costruttore del servizio chiama `initCustomLogin()`: form `POST` nativo verso `getCustomLoginFormEndpoint()` con un controllo `csrf` obbligatorio — `feature-libs/user/account/components/login-form/login-form-component.service.ts:L90-L93`, `:L275-L280`.
 - Con `authorizationCodeFlowByDefaultCsrfTokenRefresh` il CSRF è rinfrescato subito prima del submit, che avviene *prima* di `busy$.next(true)` — `feature-libs/user/account/components/login-form/login-form-component.service.ts:L101-L131`. Se il refresh fallisce, l'errore va in `sessionStorage` e si naviga "hard" a `/login` — `feature-libs/user/account/components/login-form/login-form-component.service.ts:L133-L166`.
 - Senza code flow (ROPC), `login()` chiama `auth.loginWithCredentials(userId.toLowerCase(), password)` — `feature-libs/user/account/components/login-form/login-form-component.service.ts:L198-L213`.
-- Al rientro, `handleCustomLoginError` traduce gli errori in chiavi i18n — `feature-libs/user/account/components/login-form/login-form-component.service.ts:L255-L262`.
+- Al rientro, `handleCustomLoginError` legge l'errore da `sessionStorage` (`cx_login_error`) o dal query param `error`, e lo traduce in chiavi i18n tramite `resolveLoginErrorKey` — `feature-libs/user/account/components/login-form/login-form-component.service.ts:L217-L262`.
 
 **Login OTP.** `OneTimePasswordLoginFormComponent` chiama `createVerificationToken` e naviga a `verifyToken` passando loginId, password, tokenId, expiresIn nello `state` — `feature-libs/user/account/components/otp-login-form/otp-login-form.component.ts:L132-L173`. `VerificationTokenService` è un `Command` — `feature-libs/user/account/core/facade/verification-token.service.ts:L22-L38`; l'adapter invia POST con `USE_CLIENT_TOKEN` — `feature-libs/user/account/occ/adapters/occ-user-account.adapter.ts:L54-L79`. Il form di verifica legge lo stato da `history.state` e lo sovrascrive con `pushState` — `feature-libs/user/account/components/verification-token-form/verification-token-form.component.ts:L110-L124`, poi usa `otpLoginWithCredentials` (ROPC) o il submit nativo (code flow) — `feature-libs/user/account/components/verification-token-form/verification-token-form-component.service.ts:L64-L87`.
 
@@ -234,21 +234,24 @@ sequenceDiagram
   participant FX as "AnonymousConsentsEffects"
   participant INT as "AnonymousConsentsInterceptor"
   participant OCC as "OCC backend"
+  participant ST as "Store NgRx"
   INIT->>PERS: initSync()
   PERS->>LS: read "spartacus⚿⚿anonymous-consents"
-  PERS->>SVC: onRead: templates (se success), setConsents, flag UI
+  PERS->>ST: onRead: LoadAnonymousConsentTemplatesSuccess (se success)
+  PERS->>SVC: onRead: setConsents, flag UI
   BAN->>SVC: isBannerVisible()
   SVC->>FX: dispatch AnonymousConsentCheckUpdatedVersions
   FX->>INT: HEAD anonymousConsentTemplates
   INT->>OCC: richiesta + header X-Anonymous-Consents
   OCC-->>INT: header X-Anonymous-Consents
-  INT-->>FX: consensi normalizzati
+  INT->>SVC: forza requiredConsents GIVEN, setConsents se diversi
+  INT-->>FX: risposta (adapter normalizza l'header)
   alt versioni cambiate
     FX->>INT: GET template
     INT->>OCC: GET users/anonymous/consenttemplates
     OCC-->>INT: template + header
     INT->>SVC: forza requiredConsents GIVEN, setConsents se diversi
-    FX->>SVC: LoadAnonymousConsentTemplatesSuccess + ToggleAnonymousConsentTemplatesUpdated
+    FX->>ST: LoadAnonymousConsentTemplatesSuccess + ToggleAnonymousConsentTemplatesUpdated
   end
   PERS->>LS: riscrive lo stato a ogni cambiamento
 ```
@@ -318,8 +321,8 @@ flowchart TD
   G["Navigazione a cxRoute logout"] --> H["LogoutGuard: coreLogout()"]
   H --> I["AuthActions.LOGOUT: clearUserState e clear templates anonimi"]
   H --> J{"useConfigurableLogoutRedirect?"}
-  J -- "si" --> K["login se protetto, poi logout.redirectRoute, poi home"]
-  J -- "no" --> L["content page logout se esiste, altrimenti home"]
+  J -- "si" --> K["login se protetto, poi logout.redirectRoute (se = logout: resta sulla pagina CMS), poi home"]
+  J -- "no" --> L["content page logout se esiste, altrimenti login (se protetto) o home"]
 ```
 
 Riferimenti: `core-libs/storefront/cms-components/user/login-route/login.guard.ts:L34-L65`, `core-libs/storefront/cms-components/user/logout/logout.guard.ts:L46-L110`, `core-libs/core/src/user/store/reducers/index.ts:L99-L111`, `core-libs/core/src/anonymous-consents/store/reducers/index.ts:L49-L65`.
@@ -458,7 +461,7 @@ export class ConsentService {
   }
 ```
 
-**L'interceptor dei consensi anonimi** — `core-libs/core/src/anonymous-consents/http-interceptors/anonymous-consents-interceptor.ts:L36-L65` e `:L110-L112`
+**L'interceptor dei consensi anonimi** — `core-libs/core/src/anonymous-consents/http-interceptors/anonymous-consents-interceptor.ts:L36-L69` e `:L110-L112`
 
 ```ts
   intercept(
@@ -690,7 +693,7 @@ export abstract class UserProfileFacade {
 | Endpoint OCC account (`user`, `createVerificationToken`) | `string` | `users/${userId}`, `users/anonymous/verificationToken` | `feature-libs/user/account/occ/adapters/config/default-occ-user-account-endpoint.config.ts:L9-L18` | `feature-libs/user/account/occ/adapters/occ-user-account.adapter.ts:L54-L79` |
 | Endpoint OCC profile (`userRegister`, `userForgotPassword`, `userRestoreToken`, `userResetPassword`, `userUpdateLoginId`, `userUpdatePassword`, `titles`; opzionali `userUpdateProfile`, `userCloseAccount`) | `string` | vedi file (opzionali non definiti) | `feature-libs/user/profile/occ/adapters/config/default-occ-user-profile-endpoint.config.ts:L9-L23`, modello `feature-libs/user/profile/occ/adapters/config/occ-user-profile-endpoint.model.ts:L13-L53` | `feature-libs/user/profile/occ/adapters/occ-user-profile.adapter.ts:L49-L174` |
 | Endpoint OCC wishlist (`getWishlists`, …) | `string` (castati `as any`) | vedi file | `feature-libs/user/wishlist/occ/adapters/config/default-occ-user-wishlist-endpoint.config.ts:L9-L21` | `feature-libs/user/wishlist/occ/adapters/occ-user-wishlist.adapter.ts:L25-L50` |
-| Token `USE_MY_ACCOUNT_V2_PROFILE` / `USE_MY_ACCOUNT_V2_EMAIL` / `USE_MY_ACCOUNT_V2_PASSWORD` | `InjectionToken<boolean>` | `false` | `feature-libs/user/profile/components/update-profile/use-my-account-v2-profile.ts:L9-L12`, `feature-libs/user/profile/components/update-email/use-my-account-v2-email.ts:L9-L11`, `feature-libs/user/profile/components/update-password/use-my-account-v2-password.ts:L9-L11` | `feature-libs/user/profile/components/update-profile/update-profile.module.ts:L36-L83` |
+| Token `USE_MY_ACCOUNT_V2_PROFILE` / `USE_MY_ACCOUNT_V2_EMAIL` / `USE_MY_ACCOUNT_V2_PASSWORD` | `InjectionToken<boolean>` | `false` | `feature-libs/user/profile/components/update-profile/use-my-account-v2-profile.ts:L9-L12`, `feature-libs/user/profile/components/update-email/use-my-account-v2-email.ts:L9-L11`, `feature-libs/user/profile/components/update-password/use-my-account-v2-password.ts:L9-L11` | `feature-libs/user/profile/components/update-profile/update-profile.module.ts:L36-L83`, `feature-libs/user/profile/components/update-email/update-email.module.ts:L91-L91`, `feature-libs/user/profile/components/update-password/update-password.module.ts:L90-L90`, `feature-libs/user/profile/components/update-password/update-password-component.service.ts:L52-L52` |
 | Token `USE_MY_ACCOUNT_V2_CONSENT` / `USE_MY_ACCOUNT_V2_NOTIFICATION_PREFERENCE` | `InjectionToken<boolean>` | `false` | `core-libs/storefront/cms-components/myaccount/my-account-v2/use-my-account-v2-consent-notification-perference.ts:L9-L18` | `core-libs/storefront/cms-components/myaccount/consent-management/consent-management.module.ts:L26-L60` |
 | Feature toggle `enableHierarchicalAddressFormat` | `boolean` | `false` | `core-libs/core/src/features-config/feature-toggles/config/feature-toggles.ts:L1081-L1081` | `feature-libs/user/profile/components/address-book/address-form/address-form.component.ts:L413-L420`, `:L499-L518` |
 | Feature toggle `useConfigurableLogoutRedirect` | `boolean` | `false` | `core-libs/core/src/features-config/feature-toggles/config/feature-toggles.ts:L1089-L1089` | `core-libs/storefront/cms-components/user/logout/logout.guard.ts:L46-L110` |
@@ -698,7 +701,7 @@ export abstract class UserProfileFacade {
 | Feature toggle `authorizationCodeFlowByDefaultCsrfTokenRefresh` | `boolean` | `false` | `core-libs/core/src/features-config/feature-toggles/config/feature-toggles.ts:L1030-L1030` | `feature-libs/user/account/components/login-form/login-form-component.service.ts:L101-L131` |
 | Feature toggle `siteIsolationForCustomLoginPage` | `boolean` | `false` | `core-libs/core/src/features-config/feature-toggles/config/feature-toggles.ts:L1091-L1091` | `feature-libs/user/account/components/login-form/login-form-component.service.ts:L294-L324` |
 | Feature toggle `oauthCallbackPage` / `asyncAuthConfigInitializer` | `boolean` | `false` / `false` | `core-libs/core/src/features-config/feature-toggles/config/feature-toggles.ts:L1111-L1111`, `:L1090-L1090` | `feature-libs/user/account/components/oauth-callback/oauth-callback.module.ts:L19-L37`; `feature-libs/user/account/root/user-account-root.module.ts:L50-L63` |
-| `featureModules.userAccount` / `userAccountCore` | `CmsConfig` | lista componenti; core → components | `feature-libs/user/account/root/user-account-root.module.ts:L23-L48` | `core-libs/core/src/lazy-loading/facade-factory/facade-factory.ts:L20-L20` |
+| `featureModules.userAccount` / `userAccountCore` | `CmsConfig` | lista componenti; core → components | `feature-libs/user/account/root/user-account-root.module.ts:L23-L48` | `core-libs/core/src/lazy-loading/feature-modules.service.ts:L80-L100` (via `core-libs/core/src/lazy-loading/facade-factory/facade-factory.service.ts:L43-L49`) |
 | `featureModules.userProfile` / `userProfileCore` | `CmsConfig` | lista componenti; core → components | `feature-libs/user/profile/root/user-profile-root.module.ts:L21-L43` | idem |
 
 Chiavi di storage usate dal dominio: `spartacus⚿⚿anonymous-consents` (localStorage, `core-libs/core/src/state/services/state-persistence.service.ts:L124-L131`), `spartacus⚿⚿pre-login-currency` (localStorage, `feature-libs/user/account/root/services/user-login-currency-persistence.service.ts:L10-L37`), `cx_login_error` e `cx_otp_login_state` (`feature-libs/user/account/components/user-account-constants.ts:L7-L10`), `isGuestUserCheckout` (`core-libs/storefront/cms-components/user/utils/user-constants.ts:L7-L7`).
@@ -775,7 +778,7 @@ Consigli di upgrade-safety (vedi [capitolo 54](../parte-3/54-upgrade-safe.md)): 
 17. **Password nello `history.state`.** Nel login OTP la password in chiaro viaggia nello state di navigazione verso `verifyToken` ed è sovrascritta solo dal componente di arrivo — `feature-libs/user/account/components/otp-login-form/otp-login-form.component.ts:L132-L173`, `feature-libs/user/account/components/verification-token-form/verification-token-form.component.ts:L110-L124`.
 18. **`history` globale in SSR.** `VerificationTokenFormComponent.ngOnInit` usa `history` direttamente, non `WindowRef` — `feature-libs/user/account/components/verification-token-form/verification-token-form.component.ts:L110-L124`. ⚠️ DA VERIFICARE il comportamento in SSR (in Node `history` non esiste; dipende da come la pagina viene renderizzata lato server, vedi [capitolo 7](../parte-1/07-ssr-hydration-transferstate.md)).
 19. **Coupon claim e navigazione immediata.** `CouponClaimComponent` sottoscrive un risultato che può emettere subito `false` e navigare a `coupons` prima del successo — `core-libs/storefront/cms-components/myaccount/my-coupons/coupon-claim/coupon-claim.component.ts:L29-L52`. ⚠️ DA VERIFICARE a runtime se il messaggio di successo vada perso.
-20. **Eventi definiti ma mai emessi.** `LoadUserAddressesEvent` e `LoadUserPaymentMethodsEvent` non sono registrati dal builder — `core-libs/core/src/user/events/user.events.ts:L30-L36`, `core-libs/core/src/user/events/user-event.builder.ts:L25-L53`.
+20. **Eventi "comando" non legati allo store.** `LoadUserAddressesEvent` e `LoadUserPaymentMethodsEvent` (`core-libs/core/src/user/events/user.events.ts:L30-L36`) non sono mappati su azioni dal `UserEventBuilder` (`core-libs/core/src/user/events/user-event.builder.ts:L25-L53`). Sono eventi di richiesta: li emette il checkout dopo aver creato un indirizzo o un metodo di pagamento (`feature-libs/checkout/base/root/events/checkout-delivery-address-event.listener.ts:L90-L92`, `feature-libs/checkout/base/root/events/checkout-payment-event.listener.ts:L49-L51`). `CheckoutLegacyStoreEventListener` li traduce in `LoadUserAddresses`/`LoadUserPaymentMethods` (`feature-libs/checkout/base/root/events/checkout-legacy-store-event.listener.ts:L38-L66`). Senza la feature checkout nessuno li emette né li ascolta.
 21. **Eventi sulla richiesta, non sul success.** `UpdateUserAddressEvent` & co. sono legati a `UPDATE_USER_ADDRESS`: arrivano anche se la chiamata poi fallisce — `core-libs/core/src/user/events/user-event.builder.ts:L25-L53`.
 22. **ASM e consensi.** `UserConsentService.getConsent` richiede `userId === 'current'`: in emulazione ASM (userId = customerId) non emette — `core-libs/core/src/user/facade/user-consent.service.ts:L128-L154`, `core-libs/core/src/auth/user-auth/facade/user-id.service.ts:L24-L48` (vedi [capitolo 29](../parte-2/29-asm.md)).
 23. **`toLowerCase()` opinionato.** Il login ROPC e la registrazione abbassano username/email — `feature-libs/user/account/components/login-form/login-form-component.service.ts:L198-L213`, `feature-libs/user/profile/components/register/register-component.service.ts:L53-L85`.
