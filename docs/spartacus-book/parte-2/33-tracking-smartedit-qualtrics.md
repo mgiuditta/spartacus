@@ -276,7 +276,7 @@ sequenceDiagram
     I-->>C: response
 ```
 
-Riferimenti: `feature-libs/tracking/personalization/root/http-interceptors/occ-personalization-id.interceptor.ts:L34-L49` (costruttore), `:L66-L76` dello stesso file (richiesta), `feature-libs/tracking/personalization/root/http-interceptors/occ-personalization-id.interceptor.ts:L78-L97` (risposta).
+Riferimenti: `feature-libs/tracking/personalization/root/http-interceptors/occ-personalization-id.interceptor.ts:L34-L49` (costruttore), `feature-libs/tracking/personalization/root/http-interceptors/occ-personalization-id.interceptor.ts:L66-L76` (richiesta), `feature-libs/tracking/personalization/root/http-interceptors/occ-personalization-id.interceptor.ts:L78-L97` (risposta).
 
 ### 4.3 SmartEdit: avvio, lazy load e decorazione
 
