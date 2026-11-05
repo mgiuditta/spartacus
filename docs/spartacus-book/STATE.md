@@ -29,3 +29,4 @@
 - 00:29 Counter({'scritto': 33, 'todo': 9, 'dossier': 5, 'review': 3, 'corretto': 1})
 - 00:33 Counter({'scritto': 35, 'dossier': 9, 'corretto': 4, 'todo': 2, 'review': 1})
 - 00:35 Verificatori lanciati: 10 11 12 13 14 15 16 17 18 19 20 21 22. Prossimi: 01 05 07 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 + Parte I nuovi + 50-54
+- 00:39 Verificatori lanciati in più: 01 05 07 23 24 25 26 27 28 29. Counter({'scritto': 33, 'corretto': 11, 'dossier': 6, 'review': 1})

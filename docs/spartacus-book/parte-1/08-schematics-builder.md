@@ -530,7 +530,7 @@ export function scheduleAiContext(options: SpartacusOptions): Rule {
 
 ### 5.11 Delegare a `@schematics/angular`
 
-`core-libs/schematics/src/shared/utils/new-module-utils.ts:L51-L76`
+`core-libs/schematics/src/shared/utils/new-module-utils.ts:L50-L76`
 ```ts
   return (host: Tree): Rule => {
     const modulePath = `${getSourceRoot(host, { project: options.project })}/${
@@ -812,7 +812,7 @@ Ricette pertinenti in Parte III:
 - **"Could not find Angular":** manca `angular.json`/`.angular.json` nella root del `Tree` (`core-libs/schematics/src/shared/utils/workspace-utils.ts:L31-L82`).
 - **Errore "does not support schematics":** il pacchetto non ha il campo `schematics` nel `package.json` (`deps:devkit/angular-devkit-schematics-21.2.23/package/tools/node-module-engine-host.js:L46-L62`).
 - **Una migrazione non parte:** controllare `from`/`to` rispetto all'intervallo `(from, to]` e la presenza di `version` (`deps:devkit/angular-cli-21.2.23/package/src/commands/update/utilities/migration.js:L105-L119`); per eseguirle una per volta e isolarle, `--create-commits` crea un commit per migrazione (`deps:devkit/angular-cli-21.2.23/package/src/commands/update/utilities/migration.js:L166-L190`).
-- **Testare uno schematic/migrazione:** `SchematicTestRunner` su `collection.json`/`migrations.json` e `runSchematic(name, options, tree)` (`core-libs/schematics/src/migrations/221121_7/angular-config/index_spec.ts:L7-L50`, `angular:packages/core/schematics/test/application_config_core_spec.ts:L30-L34`). Nel monorepo: `npm run test:schematics` (Jest su `core-libs/schematics`) e `test:all-schematics` per tutte le librerie (`package.json:L145-L146`), oppure `nx run schematics:test-jest` (`core-libs/schematics/project.json:L14-L20`).
+- **Testare uno schematic/migrazione:** `SchematicTestRunner` su `collection.json`/`migrations.json` e `runSchematic(name, options, tree)` (`core-libs/schematics/src/migrations/221121_7/angular-config/index_spec.ts:L7-L50`, `angular:packages/core/schematics/test/application_config_core_spec.ts:L30-L34`). Nel monorepo: `npm run test:schematics` (Jest su `core-libs/schematics`) e `test:all-schematics` per tutte le librerie (`package.json:L145-L146`), oppure `nx run schematics:test-jest` (`core-libs/schematics/project.json:L13-L19`).
 - **Builder locale:** `declaration-merging` logga via `context.logger` ogni `declare module` trovata e corretta, e gli errori per `package.json` (`tools/build-lib/declaration-merging/index.ts:L112-L136`). Se il build ng-packagr fallisce, il post-step non gira e viene restituito l'output originale (`tools/build-lib/declaration-merging/index.ts:L33-L44`).
 - **`concat` che restituisce `success: false` senza errori visibili:** un target figlio è terminato senza emettere output o con `success: false`; `concat` si ferma lì (`deps:devkit/angular-devkit-architect-0.2102.23/package/builders/concat.js:L33-L45`), e `createBuilder` trasforma un Observable vuoto in `{ success: false }` (`deps:devkit/angular-devkit-architect-0.2102.23/package/src/create-builder.js:L155-L156`).
 
