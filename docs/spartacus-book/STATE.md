@@ -26,3 +26,4 @@
 - 00:11 Counter({'scritto': 20, 'todo': 18, 'dossier': 13}). Coda: A47 A02 A03 A04 A06 A08 A50-54
 - 00:20 Counter({'scritto': 30, 'todo': 14, 'dossier': 7}). Coda: A54, poi Fase 4
 - 00:22 Capitoli 27 36 scritti. Avviata Fase 4 in parallelo (verificatori 11, 12). Coda verifica: 10 13 14 15 16 17 18 19 20 21 22 01 05 07 23..42
+- 00:29 Counter({'scritto': 33, 'todo': 9, 'dossier': 5, 'review': 3, 'corretto': 1})
