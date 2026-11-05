@@ -425,7 +425,7 @@ Catene di export:
 #### Limiti e trappole
 
 - Gli endpoint con `fields` sono stringhe intere: due estensioni che ridefiniscono `cart` si sovrascrivono (vince l'ultima nel merge), e un aggiornamento dei `fields` di default nelle nuove versioni non viene ereditato — `core-libs/core/src/config/utils/deep-merge.ts:L43-L45`. Con EDD attivo bisogna unire a mano `arrivalSlots` e `giftWrap`.
-- La config root dell'app vince su quella del chunk: se l'app definisce già `backend.occ.endpoints.cart` in un modulo eager, l'override nel chunk viene ignorato — `core-libs/core/src/config/services/configuration.service.ts:L92-L99`.
+- La config root dell'app vince su quella del chunk: se l'app definisce già `backend.occ.endpoints.cart` con `provideConfig` in un modulo eager (RootConfig), l'override nel chunk viene ignorato; una `provideDefaultConfig` eager invece perde contro il chunk — `core-libs/core/src/config/services/configuration.service.ts:L92-L99`.
 - `provideOutlet` in un chunk che **non** importa `OutletModule.forChild()` non viene registrato (initializer letti `self: true`). ⚠️ DA VERIFICARE a runtime: dedotto staticamente da `core-libs/core/src/lazy-loading/lazy-modules.service.ts:L153-L157` e `core-libs/storefront/cms-structure/outlet/outlet.module.ts:L72-L88`. Per questo il modulo va nel wrapper carrello, non in una feature lazy separata.
 - Il componente in outlet compare solo dopo il caricamento del chunk carrello — `core-libs/storefront/cms-structure/outlet/outlet.module.ts:L72-L88`.
 - Il modello EDD dichiara `@Optional() protected cartItemContext = inject(CartItemContext);` (`feature-libs/estimated-delivery-date/show-estimated-delivery-date/components/estimated-delivery-date.component.ts:L26-L26`): `@Optional()` su un campo non rende opzionale `inject()`, che lancia se il token manca e non è richiesto `optional` (`angular:packages/core/src/di/injector_compatibility.ts:L188-L197`). Nell'esempio uso `{ optional: true }`.
@@ -489,6 +489,10 @@ export class PackAddToCartComponent extends AddToCartComponent {
 }
 
 // --- src/app/cart/pack-add-to-cart.module.ts (eager, importato dall'app)
+import { NgModule } from '@angular/core';
+import { CmsConfig, provideConfig } from '@spartacus/core';
+import { PackAddToCartComponent } from './pack-add-to-cart.component';
+
 @NgModule({
   providers: [
     provideConfig(<CmsConfig>{
@@ -603,7 +607,7 @@ Catene di export:
 
 #### Limiti e trappole
 
-- Gli eventi `CartAddEntry*` sono registrati dal `CartEventBuilder` del chunk carrello: prima del caricamento non esiste sorgente; `dispatch` non fa replay — `feature-libs/cart/base/core/cart-base-core.module.ts:L22-L28`, `feature-libs/cart/base/core/event/cart-event.builder.ts:L53-L55`.
+- Gli eventi `CartAddEntry*` sono registrati dal `CartEventBuilder` del chunk carrello: prima del caricamento non esiste sorgente; `dispatch` usa un `Subject` senza replay — `feature-libs/cart/base/core/cart-base-core.module.ts:L22-L28`, `core-libs/core/src/event/event.service.ts:L111-L112`, `:L123-L125`.
 - `CartUiEventAddToCart` non estende `CartEvent`: un listener su `CartEvent` non lo riceve — `feature-libs/cart/base/root/events/cart.events.ts:L122-L122`.
 - `CartUiEventAddToCart` è emesso solo dal componente standard (e dalle sottoclassi che chiamano `super.addToCart()`): un add-to-cart fatto chiamando direttamente `ActiveCartFacade.addEntry` produce solo gli eventi `CartAddEntry*` — `feature-libs/cart/base/components/add-to-cart/add-to-cart.component.ts:L278-L302`.
 - Approfondimento sul modello eventi: [capitolo 20](../parte-2/20-facade-command-query-eventi.md); ricette generiche sugli eventi: [capitolo 50](50-ricette-config-di.md).
@@ -917,7 +921,8 @@ Esempio illustrativo, non presente nel repo (l'"esempio" degli stili è SCSS). D
 // Always bump to the latest (breaking) styles during development.
 $useLatestStyles: true;
 
-// D1: niente stili standard per cx-add-to-cart (vale per il bundle core e per quelli delle lib).
+// D1: niente stili standard (placeholder %cx-add-to-cart) per cx-add-to-cart, nel bundle core e in quelli delle lib;
+// restano le regole annidate in contenitori/layout (vedi Limiti e trappole).
 // Va assegnata PRIMA degli import di Spartacus: le variabili della lib sono `!default`.
 $skipComponentStyles: (cx-add-to-cart);
 
@@ -965,7 +970,8 @@ Catene di export (Sass): `@spartacus/cart` → `feature-libs/cart/_index.scss:L1
 
 - `$skipComponentStyles` è `!default` in ogni lib: assegnato dopo l'import non ha effetto; e poiché ogni lib è un bundle Sass separato, va messo in `styles-config.scss` — `core-libs/styles/scss/_components.scss:L1-L19`, `feature-libs/cart/base/styles/components/_index.scss:L26-L26`.
 - Lo skip agisce solo sui selettori in allowlist con placeholder: stili scritti come selettori diretti (es. EDD) non si disattivano così — `feature-libs/estimated-delivery-date/styles/_estimated-delivery-date.scss:L1-L5`.
-- Lo skip toglie anche il ramo `%cx-add-to-cart__body` su `body` — `feature-libs/cart/base/styles/components/_index.scss:L37-L44`.
+- Il loop su `body` estende `%<selector>__body` con `!optional`; per `cx-add-to-cart` quel placeholder non esiste nel repo, quindi lo skip non ha effetti su `body` — `feature-libs/cart/base/styles/components/_index.scss:L38-L43`.
+- Restano le regole su `cx-add-to-cart` scritte nello stile di componenti contenitori e dei layout (es. `cx-product-summary`, `ProductDetailsPageTemplate`): lo skip non le tocca — `core-libs/styles/scss/components/product/details/_product-summary.scss:L39-L41`, `core-libs/styles/scss/layout/page-templates/_product-detail.scss:L38-L40`.
 - La variante "additiva" sul placeholder funziona solo nella stessa compilazione Sass dove avviene l'`@extend` (il bundle della lib), non in `styles.scss`. ⚠️ DA VERIFICARE con compilazione: semantica di `@extend` per bundle, build non eseguibile (`projects/storefrontapp/project.json:L43-L47`, `:L85-L87`).
 - Un componente custom con selector diverso non riceve né gli stili standard né lo skip (vedi Ricetta B2).
 - La lib carrello ridefinisce il mixin `visible-focus` nel proprio bundle — `feature-libs/cart/_index.scss:L5-L11`: riscrivendo lo stile non va perso il focus visibile (vedi [capitolo 38](../parte-2/38-stili-theming.md)).
@@ -1185,7 +1191,7 @@ Catene di export: `TranslationChunksConfig`, `TranslationResources`: `core-libs/
 2. Modello: EDD usa un chunk con un solo namespace omonimo — `feature-libs/estimated-delivery-date/assets/translations/translations.ts:L9-L12` — ed è fornito eager nel feature module, insieme al root module — `projects/storefrontapp/src/app/spartacus/features/estimated-delivery-date/estimated-delivery-date-feature.module.ts:L18-L35`.
 3. `TranslationChunkService` costruisce la mappa namespace → chunk nel costruttore, con warning in dev per i duplicati — `core-libs/core/src/i18n/translation-chunk.service.ts:L20-L37`.
 4. L'interpolazione `{{points}}` viene dai parametri passati alla pipe, come nel modello EDD — `feature-libs/estimated-delivery-date/show-estimated-delivery-date/components/estimated-delivery-date.component.html:L10-L17`; la pipe `cxTranslate` è `TranslatePipe` — `core-libs/core/src/i18n/translate.pipe.ts:L25-L29`.
-5. Le chiavi di step e temi (`loyaltyCheckout.stepName`, `brandTheme.dark`) passano dalla stessa pipe nella progress bar — `feature-libs/checkout/base/components/checkout-progress/checkout-progress.component.html:L27-L29`.
+5. La chiave dello step (`loyaltyCheckout.stepName`) è tradotta dalla progress bar con `cxTranslate` — `feature-libs/checkout/base/components/checkout-progress/checkout-progress.component.html:L27-L29`; la chiave del tema (`brandTheme.dark`, campo `i18nNameKey`) è tradotta dal site theme switcher — `core-libs/storefront/cms-components/misc/site-theme-switcher/site-theme-switcher.component.html:L15-L16`.
 
 #### Limiti e trappole
 
@@ -1683,7 +1689,7 @@ export class EstimatedDeliveryDateFeatureModule {}
 | `i18n.chunks` | `{ [chunk]: string[] }` | — | `core-libs/core/src/i18n/config/i18n-config.ts:L88-L90` | `core-libs/core/src/i18n/translation-chunk.service.ts:L20-L37` |
 | `i18n.fallbackLang` | `string \| false` | — | `core-libs/core/src/i18n/config/i18n-config.ts:L23-L23` | `core-libs/core/src/i18n/i18next/i18next-initializer.ts:L52-L52` |
 | `i18n.backend.loader` | `(lng, chunk) => Promise` | — | `core-libs/core/src/i18n/config/i18n-config.ts:L68-L71` | `core-libs/core/src/i18n/i18next/i18next-initializer.ts:L63-L68` |
-| `context.theme` | `string[]` | — | `core-libs/core/src/site-context/providers/context-ids.ts:L10-L10` | `core-libs/core/src/site-theme/facade/site-theme.service.ts:L51-L58` |
+| `context.theme` | `string[]` | — | `core-libs/core/src/site-context/config/site-context-config.ts:L15-L17` | `core-libs/core/src/site-theme/facade/site-theme.service.ts:L51-L58` |
 | `siteTheme.optionalThemes` | `SiteTheme[]` | 2 temi high-contrast | `core-libs/core/src/site-theme/config/default-site-theme-config.ts:L9-L22` | `core-libs/core/src/site-theme/facade/site-theme.service.ts:L86-L89` |
 | Sass `$skipComponentStyles` | lista | `()` | `core-libs/styles/scss/_components.scss:L7-L7`; `feature-libs/cart/base/styles/components/_index.scss:L26-L26` | `core-libs/styles/scss/_components.scss:L40-L40`, `:L49-L49` |
 | Sass `$cart-components-allowlist` (e analoghe per area) | lista | per lib | `feature-libs/cart/base/styles/components/_index.scss:L19-L24`; `feature-libs/checkout/base/styles/components/steps/_index.scss:L7-L35` | loop `@each` negli stessi file |
@@ -1730,7 +1736,7 @@ Ricette correlate della Parte III: [configurazione, DI, interceptor, eventi](50-
 ## 9. Trappole, casi limite, comportamenti controintuitivi
 
 1. **Root module senza `module` fornito dall'app**: il tipo CMS non viene mappato (warning) e la facade lancia "Feature X is not configured properly" — `core-libs/storefront/cms-structure/services/cms-features.service.ts:L65-L68`, `core-libs/core/src/lazy-loading/facade-factory/facade-factory.service.ts:L43-L47`.
-2. **La config dell'app vince su quella dei chunk lazy**: un `provideConfig` dentro un chunk non sovrascrive la config root — `core-libs/core/src/config/services/configuration.service.ts:L92-L99`.
+2. **La config root dell'app vince su quella dei chunk lazy**: un `provideConfig` dentro un chunk non sovrascrive la config root fornita con `provideConfig` (RootConfig), ma vince su una `provideDefaultConfig` eager — `core-libs/core/src/config/services/configuration.service.ts:L92-L99`.
 3. **Array sostituiti**: `checkout.steps`, `featureModules[x].cmsComponents`, `cmsComponents[x].guards`, `i18n.chunks[x]`, `siteTheme.optionalThemes` vanno ridefiniti per intero — `core-libs/core/src/config/utils/deep-merge.ts:L7-L9`, `:L43-L45`.
 4. **Override statico di un componente di feature**: il chunk della feature viene comunque caricato e i campi non ridefiniti (`guards`, `data`) restano — `core-libs/storefront/cms-structure/services/cms-components.service.ts:L92-L99`, `:L126-L133`.
 5. **Provider nel posto sbagliato**: un override di un servizio del carrello (adapter, guard) va nel chunk del carrello/checkout (wrapper), dopo il modulo base; un provider root è oscurato da quello del chunk. ⚠️ DA VERIFICARE: risoluzione DI dedotta, non eseguita — `feature-libs/cart/base/occ/cart-base-occ.module.ts:L50-L53`, `core-libs/core/src/lazy-loading/lazy-modules.service.ts:L78-L97`.
