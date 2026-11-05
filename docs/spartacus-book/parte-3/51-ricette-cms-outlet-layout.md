@@ -601,7 +601,7 @@ import { LayoutConfig } from '@spartacus/storefront';
 @NgModule({
   providers: [
     // 1) Layout del nuovo template: base (mobile first) senza FaqAside,
-    //    da md in su (md, lg) anche FaqAside
+    //    da md in su (md, lg, xl) anche FaqAside
     provideConfig(<LayoutConfig>{
       layoutSlots: {
         FaqPageTemplate: {
@@ -660,7 +660,7 @@ Catene di export:
 
 #### Limiti e trappole
 
-- **Mobile first**: una config per breakpoint vale anche per tutti i breakpoint più grandi che non ne hanno una propria, perché i breakpoint sono ordinati dal più piccolo al più grande e si tiene l'ultimo più piccolo con `slots` (`core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts:L229-L242`, `core-libs/storefront/layout/breakpoint/breakpoint.service.ts:L134-L136`). Un override su `xs` vale quindi anche per sm/md/lg e rende inutile la config di base; per avere slot diversi solo su xs si mette la variante ridotta come base e quella completa su un breakpoint più grande, come fa `layoutConfig` con `lg`.
+- **Mobile first**: una config per breakpoint vale anche per tutti i breakpoint più grandi che non ne hanno una propria, perché i breakpoint sono ordinati dal più piccolo al più grande e si tiene l'ultimo più piccolo con `slots` (`core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts:L229-L242`, `core-libs/storefront/layout/breakpoint/breakpoint.service.ts:L134-L136`). Un override su `xs` vale quindi anche per sm/md/lg/xl e rende inutile la config di base; per avere slot diversi solo su xs si mette la variante ridotta come base e quella completa su un breakpoint più grande, come fa `layoutConfig` con `lg`.
 - **Lo slot deve esistere nella pagina**: uno slot in `layoutSlots` che la pagina non contiene viene filtrato (`core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts:L117-L119`). Nell'esempio *FaqAside* non è nella pagina statica e quindi non viene reso.
 - **Template senza config**: tutti gli slot della pagina nell'ordine delle chiavi + warning dev; una section senza config non rende nulla (`core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts:L120-L126`, `core-libs/storefront/cms-structure/page/page-layout/page-layout.service.ts:L251-L273`).
 - **Array sostituiti**: un `slots: [...]` rimpiazza l'intera lista del template (`core-libs/core/src/config/utils/deep-merge.ts:L36-L45`); `provideCmsStructure({ pageTemplate, pageSlotPosition })` genera `slots: [pageSlotPosition]` e può azzerare gli altri slot se fuso dopo (`core-libs/storefront/cms-structure/utils/cms-structure.util.ts:L78-L90`).
