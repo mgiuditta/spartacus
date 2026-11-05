@@ -80,6 +80,52 @@ Tre scelte progettuali caratterizzano la libreria e ritornano in tutto il capito
 | `feature-libs/pdf-invoices/**` | Feature `pdfInvoices` (root/core/occ/components). |
 | `projects/storefrontapp/src/app/spartacus/features/order/order-feature.module.ts` | App demo: `module: () => import(...)` e flag v2 (`:L23-L37`). |
 
+### File aggiuntivi
+
+| Path | Ruolo |
+|---|---|
+| `feature-libs/order/schematics/add-order/index.ts` | `addOrderFeatures()`: factory degli schematics `ng-add`/`add` di `@spartacus/order` (vedi 3.10). |
+| `feature-libs/order/schematics/add-order/index_spec.ts` | Test dello schematic: lazy loading, nessuna installazione delle dipendenze, scss, `angular.json`, eager loading. |
+| `feature-libs/order/styles/_index.scss` | Entry SCSS degli stili order: importa `components/index`. |
+| `feature-libs/order/styles/components/_index.scss` | Importa i cinque gruppi: order-history, order-overview, order-details, replenishment-order, my-account-v2. |
+| `feature-libs/order/styles/components/my-account-v2/_index.scss` | Allowlist `$myaccount-view-order-allowlist` (solo `cx-my-account-v2-orders`) + `@extend` dei placeholder. |
+| `feature-libs/order/styles/components/my-account-v2/_my-account-v2-order.scss` | Placeholder `%cx-my-account-v2-orders` (widget ordini My Account v2). |
+| `feature-libs/order/styles/components/order-details/_index.scss` | Importa gli stili del dettaglio e definisce `$order-details-allowlist` (include anche i selettori del document flow). |
+| `feature-libs/order/styles/components/order-details/_attachments-dialog.scss` | Placeholder `%cx-order-attachments-dialog`. |
+| `feature-libs/order/styles/components/order-details/_my-account-v2-order-details.scss` | Placeholder v2: `%cx-my-account-v2-order-details-actions`, `%cx-my-account-v2-consignment-tracking`, `%cx-my-account-v2-download-invoices`. |
+| `feature-libs/order/styles/components/order-details/_order-attachments.scss` | Placeholder `%cx-order-attachments`. |
+| `feature-libs/order/styles/components/order-details/_order-detail-billing.scss` | Placeholder `%cx-order-detail-billing`. |
+| `feature-libs/order/styles/components/order-details/_order-details-actions.scss` | Placeholder `%cx-order-details-actions`. |
+| `feature-libs/order/styles/components/order-details/_order-details-items.scss` | Placeholder `%cx-order-details-items`. |
+| `feature-libs/order/styles/components/order-details/_order-details-reorder.scss` | Placeholder `%cx-order-details-reorder`. |
+| `feature-libs/order/styles/components/order-details/_order-details-shipping.scss` | Definisce di nuovo `%cx-order-overview` (stesso placeholder di `_order-overview.scss`, vedi 3.10). |
+| `feature-libs/order/styles/components/order-details/_reorder-dialog.scss` | Selettore diretto `cx-reorder-dialog` (non placeholder, fuori allowlist). |
+| `feature-libs/order/styles/components/order-history/_index.scss` | Importa `cart-item-list` da cart base + gli stili storico/amend/resi/tracking; `$order-history-allowlist`. |
+| `feature-libs/order/styles/components/order-history/_amend-order-actions.scss` | Placeholder `%cx-amend-order-actions`. |
+| `feature-libs/order/styles/components/order-history/_amend-order-items.scss` | Placeholder `%cx-amend-order-items`. |
+| `feature-libs/order/styles/components/order-history/_cancel-order.scss` | Placeholder `%cx-cancel-order`. |
+| `feature-libs/order/styles/components/order-history/_consignment-tracking.scss` | Placeholder `%cx-consignment-tracking` e `%cx-tracking-events`. |
+| `feature-libs/order/styles/components/order-history/_my-account-v2-order-history.scss` | Mixin `draw-line` + placeholder `%cx-my-account-v2-order-history`. |
+| `feature-libs/order/styles/components/order-history/_order-history.scss` | Placeholder `%cx-order-history`. |
+| `feature-libs/order/styles/components/order-history/_order-return-request-list.scss` | Placeholder `%cx-order-return-request-list`. |
+| `feature-libs/order/styles/components/order-history/_replenishment-order-history.scss` | Placeholder `%cx-replenishment-order-history`. |
+| `feature-libs/order/styles/components/order-history/_return-request-items.scss` | Placeholder `%cx-return-request-items`. |
+| `feature-libs/order/styles/components/order-history/_return-request-overview.scss` | Placeholder `%cx-return-request-overview`. |
+| `feature-libs/order/styles/components/order-history/_return-request-totals.scss` | Placeholder `%cx-return-request-totals`. |
+| `feature-libs/order/styles/components/order-overview/_index.scss` | Allowlist `$order-overview-allowlist` (`cx-order-overview`). |
+| `feature-libs/order/styles/components/order-overview/_order-overview.scss` | Placeholder `%cx-order-overview`. |
+| `feature-libs/order/styles/components/replenishment-order/_index.scss` | Allowlist `$replenishment-order-allowlist` (cancellation + dialog). |
+| `feature-libs/order/styles/components/replenishment-order/_replenishment-order-cancellation.scss` | Placeholder `%cx-replenishment-order-cancellation` e `%cx-replenishment-order-cancellation-dialog`. |
+| `feature-libs/pdf-invoices/_index.scss` | Entry SCSS di `@spartacus/pdf-invoices`: importa `@spartacus/styles/scss/core` e `styles/index`. |
+| `feature-libs/pdf-invoices/styles/_index.scss` | Importa `_pdf-invoices.scss`. |
+| `feature-libs/pdf-invoices/styles/_pdf-invoices.scss` | Stili di `cx-invoices-list` con selettore diretto (nessuna allowlist). |
+| `feature-libs/pdf-invoices/assets/public_api.ts` | Entry `@spartacus/pdf-invoices/assets`: riesporta `translations/translations`. |
+| `feature-libs/pdf-invoices/pdf-invoices.module.ts` | `PDFInvoicesModule` = components + core + occ (`:L12-L19`). |
+| `feature-libs/pdf-invoices/public_api.ts` | Entry `@spartacus/pdf-invoices`: riesporta solo il modulo (`:L10-L10`). |
+| `feature-libs/pdf-invoices/schematics/add-pdf-invoices/index.ts` | `addPDFInvoicesFeature()`: factory degli schematics di pdf-invoices (vedi 3.10). |
+| `feature-libs/pdf-invoices/schematics/add-pdf-invoices/index_spec.ts` | Test dello schematic pdf-invoices (lazy, scss, `angular.json`, eager). |
+| `feature-libs/pdf-invoices/vitest.config.ts` | Config Vitest della libreria: jsdom, pool `forks`, coverage v8 con soglie 85/65, report junit. |
+
 ## 3. Come funziona passo per passo
 
 ### 3.1 Registrazione eager e caricamento lazy
@@ -186,6 +232,11 @@ Sopra questo flusso:
 - **Download fatture v2.** È event-driven: `MyAccountV2OrderDetailsActionsComponent.showDialog` dispatcha `DownloadOrderInvoicesEvent`; `MyAccountV2DownloadInvoicesEventListener` apre il dialog `DOWNLOAD_ORDER_INVOICES` (`feature-libs/order/components/order-details/my-account-v2/order-details-actions/my-account-v2-order-details-actions.component.ts:L31-L35`, `feature-libs/order/components/order-details/my-account-v2/download-invoices/my-account-v2-download-invoices-event.listener.ts:L24-L41`), che incorpora `InvoicesListComponent` di `@spartacus/pdf-invoices` (`feature-libs/order/components/order-details/my-account-v2/download-invoices/my-account-v2-download-invoices.component.ts:L41-L65`).
 - **Document flow.** Feature separata `orderDocumentFlow` con un solo tipo CMS, `AccountOrderDocumentFlowComponent`, senza `dependencies` (`feature-libs/order/document-flow/root/order-document-flow-root.module.ts:L11-L22`). `OrderDocumentFlowFacade` espone `getOrderSubsequentDocuments` e `getOrderSubsequentDocumentEntries` (`feature-libs/order/document-flow/root/facade/order-document-flow.facade.ts:L17-L45`); il componente riusa `OrderDetailsService` e apre il dialog `ORDER_DOCUMENT_FLOW` (`feature-libs/order/document-flow/components/order-document-flow/order-document-flow.component.ts:L29-L46`), che mette in cache le entry per documento (`feature-libs/order/document-flow/components/order-document-flow-dialog/order-document-flow-dialog.component.ts:L111-L177`). Gli endpoint sono `subsequentDocuments` e `subsequentDocumentsEntries` (`feature-libs/order/document-flow/occ/config/default-occ-document-flow-config-factory.ts:L10-L24`).
 - **PDF invoices.** Feature `pdfInvoices` con alias `pdfInvoicesCore` e CMS `AccountOrderDetailsPDFInvoicesComponent` (`feature-libs/pdf-invoices/root/pdf-invoices-root.module.ts:L14-L33`). `PDFInvoicesFacade` è lazy sulla feature `pdfInvoices` (`feature-libs/pdf-invoices/root/facade/pdf-invoices.facade.ts:L16-L22`). `PDFInvoicesService` memorizza `userId` e `orderId` (dal param `orderCode`) nel costruttore e li usa come fallback (`feature-libs/pdf-invoices/core/services/pdf-invoices.service.ts:L25-L76`). `PDFInvoicesBadRequestHandler` (400) traduce gli `UnknownIdentifierError` su `Order`/`Invoice` in messaggi dedicati (`feature-libs/pdf-invoices/core/http-interceptors/bad-request/pdf-invoices-badrequest.handler.ts:L20-L90`). `InvoicesListComponent` usa page size 5 e forza `fields: DEFAULT` sugli aggiornamenti successivi (`feature-libs/pdf-invoices/components/invoices-list/invoices-list.component.ts:L67-L155`); il download passa per `FileDownloadService.download(url, '<invoiceId>.pdf')` (`feature-libs/pdf-invoices/components/invoices-list/invoices-list.component.ts:L171-L182`).
+
+### 3.10 Installazione via schematics e stili
+
+- **Schematics.** `addOrderFeatures()` legge il `package.json` dell'app, valida l'installazione Spartacus, risolve le dipendenze tra feature con `analyzeCrossFeatureDependencies` e concatena `analyzeApplication`, `addFeatures`, `addPackageJsonDependenciesForLibrary(peerDependencies, ...)` e `finalizeInstallation` (`feature-libs/order/schematics/add-order/index.ts:L25-L43`). La stessa funzione è registrata sia come `ng-add` (privato, nascosto, alias `install`) sia come `add` (`feature-libs/order/schematics/collection.json:L4-L16`). Il test verifica che i moduli feature di cart base e user **non** vengano generati (`feature-libs/order/schematics/add-order/index_spec.ts:L99-L107`). `addPDFInvoicesFeature()` ha corpo identico (`feature-libs/pdf-invoices/schematics/add-pdf-invoices/index.ts:L25-L45`), ma il suo spec non contiene il test "should NOT install the required feature dependencies" (`feature-libs/pdf-invoices/schematics/add-pdf-invoices/index_spec.ts:L79-L123`).
+- **Stili.** Ogni gruppo SCSS segue lo schema allowlist + `@extend %<selettore> !optional`, saltando i selettori presenti in `$skipComponentStyles` (`feature-libs/order/styles/components/order-details/_index.scss:L11-L37`). L'allowlist del dettaglio elenca anche `cx-order-document-flow` e `cx-order-document-flow-dialog`, i cui placeholder stanno però in `feature-libs/order/document-flow/styles/_document-flow.scss:L1-L1`. Il placeholder `%cx-order-overview` è definito due volte, in `feature-libs/order/styles/components/order-overview/_order-overview.scss:L1-L1` e in `feature-libs/order/styles/components/order-details/_order-details-shipping.scss:L1-L1`: Sass unisce le regole di entrambi. `cx-reorder-dialog` (`feature-libs/order/styles/components/order-details/_reorder-dialog.scss:L1-L1`) e `cx-invoices-list` (`feature-libs/pdf-invoices/styles/_pdf-invoices.scss:L1-L1`) usano invece selettori diretti, quindi `$skipComponentStyles` non li può escludere.
 
 ## 4. Diagrammi
 

@@ -71,6 +71,36 @@ In sintesi:
 | `feature-libs/cart/base/components/add-to-cart/add-to-cart.component.ts` | Legge la scelta pickup al momento dell'add (`:L267-L287`). |
 | `feature-libs/cart/base/occ/adapters/occ-cart-entry.adapter.ts` | `PUT` vs `PATCH` per pickup ↔ delivery (`:L86-L104`). |
 
+### File aggiuntivi
+
+| Path | Ruolo |
+|---|---|
+| `feature-libs/estimated-delivery-date/public_api.ts` | Entry point principale: riesporta `EstimatedDeliveryDateModule` e la public API di `show-estimated-delivery-date` (`:L10-L11`). |
+| `feature-libs/estimated-delivery-date/assets/public_api.ts` | Entry point `assets`: riesporta le traduzioni (`:L7-L7`). |
+| `feature-libs/estimated-delivery-date/_index.scss` | Entry Sass della lib: importa il core styles e `styles/index` (`:L1-L2`). |
+| `feature-libs/estimated-delivery-date/styles/_index.scss` | Importa `_estimated-delivery-date.scss` (`:L1-L1`). |
+| `feature-libs/estimated-delivery-date/styles/_estimated-delivery-date.scss` | Regole globali (non placeholder) per `cx-estimated-delivery-date` e `.cx-estimated-delivery-date-info` (`:L1-L23`). |
+| `feature-libs/estimated-delivery-date/schematics/add-estimated-delivery-date/index.ts` | Factory `ng-add` `addEstimatedDeliveryDateFeature` (`:L25-L45`). |
+| `feature-libs/estimated-delivery-date/schematics/add-estimated-delivery-date/index_spec.ts` | Test Jest dello schematic: lazy loading nel wrapper cart-base, nessuna feature user/order installata (`:L110-L126`). |
+| `feature-libs/estimated-delivery-date/vitest.config.ts` | Config Vitest (jsdom, coverage v8, soglie 85/85/65/85) (`:L14-L47`). |
+| `feature-libs/pickup-in-store/pickup-in-store.module.ts` | `PickupInStoreModule` = Components + Core + Occ (`:L12-L19`). |
+| `feature-libs/pickup-in-store/public_api.ts` | Entry point principale: riferimento a `types.d.ts` e riesportazione del module (`:L14-L19`). |
+| `feature-libs/pickup-in-store/_index.scss` | Entry Sass: definisce `$cx-color-link-primary` e importa core, modal, table e `styles/index` (`:L1-L7`). |
+| `feature-libs/pickup-in-store/schematics/add-pickup-in-store/index.ts` | Factory `ng-add` `addPickupInStoreFeatures` (`:L25-L45`). |
+| `feature-libs/pickup-in-store/schematics/add-pickup-in-store/index_spec.ts` | Test Jest dello schematic (senza feature, lazy, styling, eager) (`:L25-L144`). |
+| `feature-libs/requested-delivery-date/public_api.ts` | Entry point principale: riesporta solo `RequestedDeliveryDateModule` (`:L10-L10`). |
+| `feature-libs/requested-delivery-date/_index.scss` | Entry Sass: core + `styles/index` (`:L1-L2`). |
+| `feature-libs/requested-delivery-date/styles/_index.scss` | Importa `_requested-delivery-date.scss` (`:L1-L1`). |
+| `feature-libs/requested-delivery-date/styles/_requested-delivery-date.scss` | Regole globali per `cx-request-delivery-date` e per `.cx-review-card-shipping` del checkout (`:L1-L25`). |
+| `feature-libs/requested-delivery-date/schematics/add-requested-delivery-date/index.ts` | Factory `ng-add` `addRequestedDeliveryDateFeature` (`:L25-L45`). |
+| `feature-libs/requested-delivery-date/schematics/add-requested-delivery-date/index_spec.ts` | Test Jest dello schematic (`:L21-L131`). |
+| `feature-libs/requested-delivery-date/vitest.config.ts` | Config Vitest (`:L14-L58`). |
+| `feature-libs/storefinder/public_api.ts` | Entry point principale: riesporta `store-finder.module` (`:L10-L10`). |
+| `feature-libs/storefinder/_index.scss` | Entry Sass: core + `styles/index` (`:L1-L2`). |
+| `feature-libs/storefinder/schematics/add-storefinder/index.ts` | Factory `ng-add` `addStorefinderFeatures` (`:L25-L45`). |
+| `feature-libs/storefinder/schematics/add-storefinder/index_spec.ts` | Test Jest dello schematic (`:L21-L125`). |
+| `feature-libs/storefinder/vitest.config.ts` | Config Vitest con `resolve.alias` verso helper di test di core/storefront (`:L16-L22`). |
+
 ## 3. Come funziona passo per passo
 
 ### 3.1 Requested Delivery Date
@@ -232,6 +262,14 @@ Il dialog è registrato nella layout config: `PICKUP_IN_STORE` → `PickupOption
 **Negozio preferito.** `SetPreferredStoreComponent` riceve i nomi dal contesto outlet e chiama `setPreferredStore` (`feature-libs/pickup-in-store/components/container/set-preferred-store/set-preferred-store.component.ts:L42-L57`). `PreferredStoreService` dispatcha `LoadDefaultPointOfService()` nel costruttore (`feature-libs/pickup-in-store/core/services/preferred-store.service.ts:L32-L41`); `getPreferredStoreWithProductInStock` richiede lo stock al negozio preferito ed emette solo se `isInStock` (`feature-libs/pickup-in-store/core/services/preferred-store.service.ts:L73-L97`). `MyPreferredStoreComponent` carica i dettagli del preferito e sulla pagina `storefinderPage` mostra solo l'azione "Get Directions" (`feature-libs/pickup-in-store/components/container/my-preferred-store/my-preferred-store.component.ts:L100-L164`).
 
 Nella demo il pickup-in-store è aggiunto solo nel ramo non-B2B (`projects/storefrontapp/src/app/spartacus/spartacus-features.module.ts:L117-L129`).
+
+### 3.9 Packaging: schematics, stili, test
+
+**Schematics `ng-add`.** Le quattro factory sono identiche salvo il nome: validano l'installazione Spartacus da `package.json`, espandono le feature richieste con `analyzeCrossFeatureDependencies` e concatenano `analyzeApplication` → `addFeatures` → `addPackageJsonDependenciesForLibrary(peerDependencies)` → `finalizeInstallation` (`feature-libs/estimated-delivery-date/schematics/add-estimated-delivery-date/index.ts:L25-L45`, `feature-libs/pickup-in-store/schematics/add-pickup-in-store/index.ts:L25-L45`, `feature-libs/requested-delivery-date/schematics/add-requested-delivery-date/index.ts:L25-L45`, `feature-libs/storefinder/schematics/add-storefinder/index.ts:L25-L45`). Il test EDD verifica che il modulo lazy finisca nel wrapper `cart-base` e che **non** vengano creati i feature module user/order (`feature-libs/estimated-delivery-date/schematics/add-estimated-delivery-date/index_spec.ts:L110-L126`), coerente con la T10 (EDD viaggia col chunk del carrello).
+
+**Stili globali vs allowlist.** Pickup-in-store e storefinder usano placeholder + allowlist (vedi sezione 8), mentre RDD ed EDD scrivono regole dirette sui selettori: `$skipComponentStyles` non ha effetto su di esse (`feature-libs/requested-delivery-date/styles/_requested-delivery-date.scss:L1-L25`, `feature-libs/estimated-delivery-date/styles/_estimated-delivery-date.scss:L1-L23`). In particolare RDD azzera il `padding-bottom` delle card dentro `.cx-review-card-shipping`, classe del riepilogo checkout definita fuori dalla lib (`feature-libs/requested-delivery-date/styles/_requested-delivery-date.scss:L15-L25`, `feature-libs/checkout/base/components/checkout-review-submit/checkout-review-submit.component.html:L58-L58`): importare gli stili RDD cambia la review anche quando il date picker non è presente. Il root `_index.scss` del pickup assegna `$cx-color-link-primary: #1672b7` senza `!default` prima degli import, quindi un valore impostato prima dall'app viene sovrascritto (`feature-libs/pickup-in-store/_index.scss:L1-L7`, `feature-libs/pickup-in-store/styles/_store.scss:L29-L29`).
+
+**Test.** Le tre config Vitest condividono forks/jsdom/`setup-vitest.ts` e soglie 85/85/65/85; storefinder aggiunge alias di path per gli helper di test importati con path relativi alla root (`feature-libs/storefinder/vitest.config.ts:L16-L22`, `feature-libs/storefinder/vitest.config.ts:L51-L56`, `feature-libs/requested-delivery-date/vitest.config.ts:L42-L47`, `feature-libs/estimated-delivery-date/vitest.config.ts:L41-L46`).
 
 ## 4. Diagrammi
 
