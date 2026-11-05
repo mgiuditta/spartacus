@@ -156,7 +156,7 @@ Il backend decide quali azioni sono possibili; il client decide **quali mostrare
 1. Se esiste un ordine configurato per lo stato (`quote.actions.actionsOrderByState[state]`), clona la lista; se lo stato non è `BUYER_OFFER` e il carrello attivo è il quote cart **di questa quote**, toglie `EDIT` dalla lista clonata (`feature-libs/quote/occ/converters/occ-quote-action-normalizer.ts:L60-L81`).
 2. Filtra le azioni OCC tenendo solo quelle presenti nell'ordine e le ordina di conseguenza; se non c'è ordine per lo stato restituisce la lista OCC invariata (`feature-libs/quote/occ/converters/occ-quote-action-normalizer.ts:L82-L89`).
 3. Marca `isPrimary` se il tipo è in `quote.actions.primaryActions` (`feature-libs/quote/occ/converters/occ-quote-action-normalizer.ts:L46-L53`).
-4. Calcola `isEditable = OCC permette EDIT && EDIT non è più tra le azioni visualizzate` (`feature-libs/quote/occ/converters/occ-quote-action-normalizer.ts:L37-L43`). Tradotto: la quote è editabile **ora** perché è già in edit nel quote cart attivo; finché `EDIT` è un bottone, la quote non è editabile.
+4. Calcola `isEditable = OCC permette EDIT && EDIT non è più tra le azioni visualizzate` (`feature-libs/quote/occ/converters/occ-quote-action-normalizer.ts:L37-L43`). Tradotto: `isEditable` è vero quando OCC permette `EDIT` ma `EDIT` non è tra le azioni normalizzate. Il caso tipico è la quote già nel quote cart attivo (EDIT rimosso dal normalizer); vale però anche per gli stati il cui ordine configurato non contiene `EDIT` (con i default `EXPIRED` e `CANCELLED`), dove `EDIT` viene filtrato via (`feature-libs/quote/occ/converters/occ-quote-action-normalizer.ts:L82-L83`, `feature-libs/quote/core/config/default-quote.core.config.ts:L30-L31`). Che OCC mandi `EDIT` per `EXPIRED` è previsto dalla UI config, che ha un dialog `EXPIRED.EDIT` (`feature-libs/quote/components/config/default-quote-ui.config.ts:L41-L43`).
 
 I default (`feature-libs/quote/core/config/default-quote.core.config.ts:L10-L37`): primarie `APPROVE`, `CHECKOUT`, `SUBMIT`, `REQUOTE`; ordine per sei stati: `BUYER_DRAFT` [SUBMIT, EDIT, CANCEL], `BUYER_OFFER` [CHECKOUT, EDIT, CANCEL], `CANCELLED` [REQUOTE], `EXPIRED` [REQUOTE, CANCEL], `SELLER_REQUEST` e `SELLER_DRAFT` [SUBMIT, EDIT].
 
@@ -245,7 +245,7 @@ Dieci endpoint di default; `getQuote` chiede `FULL,expirationTime`, i prezzi for
 
 ### 3.11 Subscription billing
 
-**Root eager con outlet.** Cinque componenti CMS sulla feature `subscriptionBilling` e alias `subscriptionBillingCore` (`feature-libs/subscription-billing/root/subscription-billing-root.module.ts:L24-L40`). Il root fornisce inoltre due outlet del carrello in posizione `AFTER`: `SUBSCRIPTION_PRICE_HEADING` e `SUBSCRIPTION_PRICE_BODY` (`feature-libs/subscription-billing/root/subscription-billing-root.module.ts:L42-L59`), i cui id sono definiti in cart base (`feature-libs/cart/base/root/models/cart-outlets.model.ts:L28-L29`) e resi dalla cart item list (`feature-libs/cart/base/components/cart-shared/cart-item-list/cart-item-list.component.html:L14-L14`). I componenti outlet sono standalone e leggono il contesto con `toSignal(OutletContextData.context$)` (`feature-libs/subscription-billing/root/components/cart/price-heading/subscription-cart-price-heading.component.ts:L22-L31`). Il prezzo di abbonamento in carrello compare quindi **senza** caricare il chunk lazy.
+**Root eager con outlet.** Cinque componenti CMS sulla feature `subscriptionBilling` e alias `subscriptionBillingCore` (`feature-libs/subscription-billing/root/subscription-billing-root.module.ts:L24-L40`). Il root fornisce inoltre due outlet del carrello in posizione `AFTER`: `SUBSCRIPTION_PRICE_HEADING` e `SUBSCRIPTION_PRICE_BODY` (`feature-libs/subscription-billing/root/subscription-billing-root.module.ts:L42-L59`), i cui id sono definiti in cart base (`feature-libs/cart/base/root/models/cart-outlets.model.ts:L28-L29`) e resi dalla cart item list (`feature-libs/cart/base/components/cart-shared/cart-item-list/cart-item-list.component.html:L14-L14`). I componenti outlet sono standalone e leggono il contesto con `toSignal(OutletContextData.context$)` (`feature-libs/subscription-billing/root/components/cart/price-heading/subscription-cart-price-heading.component.ts:L22-L31`). I componenti outlet esistono quindi anche senza il chunk lazy. Il prezzo compare però solo se le entry del carrello contengono `sapSubscriptionTerm` e `sapPricePlan` (`feature-libs/subscription-billing/root/services/subscription-product.service.ts:L18-L20`), che i field di default dell'endpoint `cart` non richiedono esplicitamente (`feature-libs/cart/base/occ/config/default-occ-cart-config-factory.ts:L17-L17`); la config OCC di subscription-billing arriva solo dal modulo OCC lazy (`feature-libs/subscription-billing/occ/subscription-billing-occ.module.ts:L23-L23`). ⚠️ DA VERIFICARE: dipende dal livello `DEFAULT` del backend.
 
 **Prodotti subscription.** Un prodotto è subscription se ha sia `sapSubscriptionTerm` sia `sapPricePlan`; i dati si caricano con lo scope `SUBSCRIPTION` (`feature-libs/subscription-billing/root/services/subscription-product.service.ts:L18-L28`). Il model augmenta `Product` e aggiunge `ProductScope.SUBSCRIPTION = 'subscription'` anche a runtime (`feature-libs/subscription-billing/root/model/subscription-product.model.ts:L98-L110`); l'endpoint `product.subscription` chiede `fields=sapPricePlan,sapSubscriptionTerm` (`feature-libs/subscription-billing/occ/config/default-occ-subscription-billing-config.ts:L10-L43`). Gli scope prodotto sono trattati in [24 — Product e search](../parte-2/24-product-search.md).
 
@@ -253,7 +253,7 @@ Dieci endpoint di default; `getQuote` chiede `FULL,expirationTime`, i prezzi for
 
 **Codice dall'URL.** Il codice della subscription è estratto con la regex `/subscription/<id>` dall'URL, non dai parametri di route (`feature-libs/subscription-billing/core/facade/subscription.service.ts:L126-L134`); idem per i bill con `/subscription-bill/<id>` (`feature-libs/subscription-billing/core/facade/subscription-billing.service.ts:L157-L165`). Le precondizioni del dettaglio non hanno `take(1)` e lanciano se manca codice o utente (`feature-libs/subscription-billing/core/facade/subscription.service.ts:L111-L123`); la query ha solo `reloadOn` (il `resetOn` è commentato) (`feature-libs/subscription-billing/core/facade/subscription.service.ts:L53-L56`).
 
-**Azioni senza Command.** `SubscriptionActionsService` restituisce Observable freddi (`combineLatest` + `take(1)` + `switchMap`) (`feature-libs/subscription-billing/core/facade/subscription-actions.service.ts:L55-L77`): senza subscribe non parte nulla. `getExtensionEffectiveDate` è l'unico senza `take(1)` né controlli (`feature-libs/subscription-billing/core/facade/subscription-actions.service.ts:L123-L138`).
+**Azioni senza Command.** `SubscriptionActionsService` restituisce Observable freddi (`combineLatest` + `take(1)` + `switchMap`) (`feature-libs/subscription-billing/core/facade/subscription-actions.service.ts:L55-L77`): senza subscribe non parte nulla. `getExtensionEffectiveDate` è l'unico senza `take(1)` (`feature-libs/subscription-billing/core/facade/subscription-actions.service.ts:L123-L138`). Né lui né `extendSubscription` controllano `userId`/codice (`feature-libs/subscription-billing/core/facade/subscription-actions.service.ts:L145-L157`); gli altri quattro metodi lanciano un errore se mancano (`feature-libs/subscription-billing/core/facade/subscription-actions.service.ts:L35-L121`).
 
 **OCC.** Gli adapter non usano converter: restituiscono il JSON tipizzato normalizzando solo gli errori (`feature-libs/subscription-billing/occ/adapters/occ-subscription.adapter.ts:L36-L40`). L'estensione invia `{ numberOfBillingCycles, unlimited }` (`feature-libs/subscription-billing/occ/adapters/occ-subscription-actions.adapter.ts:L120-L153`); `reverseCancellation` fa POST con body `null` e Content-Type JSON (`feature-libs/subscription-billing/occ/adapters/occ-subscription-actions.adapter.ts:L98-L101`); il filtro bill va nel query param `filters` (`feature-libs/subscription-billing/occ/adapters/occ-subscription-billing.adapter.ts:L37-L47`).
 
@@ -338,7 +338,7 @@ sequenceDiagram
   MC-->>QS: getActive() emette cart.code == cartId
   QS->>QC: setCheckoutAllowed(true)
   QS->>QS: go(cxRoute checkout)
-  Note over G: pagina checkout con marker QuoteCartGuardComponent
+  Note over G: se la pagina checkout contiene il marker QuoteCartGuardComponent (⚠️ DA VERIFICARE: composizione CMS lato backend)
   G->>QC: isQuoteCartActive, isCheckoutAllowed
   G-->>U: true (nextState checkout e checkout consentito)
 ```
@@ -481,7 +481,7 @@ Riferimenti: `feature-libs/subscription-billing/components/details/subscription-
 
 ### 5.3 Diramazione delle azioni in `QuoteService`
 
-`feature-libs/quote/core/facade/quote.service.ts:L244-L265`
+`feature-libs/quote/core/facade/quote.service.ts:L245-L266`
 ```ts
           if (
             payload.quoteAction === QuoteActionType.SUBMIT ||
@@ -507,7 +507,7 @@ Riferimenti: `feature-libs/subscription-billing/components/details/subscription-
             const cartId = payload.quote.cartId;
 ```
 
-`feature-libs/quote/core/facade/quote.service.ts:L336-L353`
+`feature-libs/quote/core/facade/quote.service.ts:L337-L354`
 ```ts
     this.activeCartFacade
       .getActive()
@@ -531,7 +531,7 @@ Riferimenti: `feature-libs/subscription-billing/components/details/subscription-
 
 ### 5.4 Query dei dettagli guidata dal router
 
-`feature-libs/quote/core/facade/quote.service.ts:L398-L421`
+`feature-libs/quote/core/facade/quote.service.ts:L396-L420`
 ```ts
             combineLatest([
               this.routingService.getRouterState(),
@@ -603,7 +603,7 @@ Riferimenti: `feature-libs/subscription-billing/components/details/subscription-
 
 ### 5.7 Ticketing: evento scelto in base a `toStatus`
 
-`feature-libs/customer-ticketing/core/facade/customer-ticketing.service.ts:L114-L131`
+`feature-libs/customer-ticketing/core/facade/customer-ticketing.service.ts:L115-L132`
 ```ts
           this.customerTicketingConnector
             .createTicketEvent(customerId, ticketId, payload.ticketEvent)
@@ -753,7 +753,7 @@ Nell'app demo la feature subscription carica solo l'inglese con `fallbackLang: '
 | Page meta | `PageMetaResolver` multi (ticket, subscription) | `feature-libs/customer-ticketing/core/customer-ticketing-core.module.ts:L14-L31` | [52 — Ricette OCC/meta resolver](../parte-3/52-ricette-occ-dati.md) |
 | Traduzioni | chunk `quote`, `customerTicketing`, `myAccountV2CustomerTicketing` | `feature-libs/quote/assets/translations/translations.ts:L9-L11`, `feature-libs/customer-ticketing/assets/translations/translations.ts:L9-L18` | [53 — Ricette traduzioni](../parte-3/53-ricette-feature-cart-checkout-stili-i18n.md) |
 
-Attenzione all'API pubblica: `OccQuoteActionNormalizer` e `OccQuoteEntryNormalizer` non sono esportati da `occ/public_api.ts` (`feature-libs/quote/occ/public_api.ts:L7-L9`); `SubscriptionDetailsPageMetaResolver` non è esportato dall'index dei servizi core. Estenderli significa importare da path interni: vedi [54 — API pubblica e upgrade](../parte-3/54-upgrade-safe.md).
+Attenzione all'API pubblica: `OccQuoteActionNormalizer` e `OccQuoteEntryNormalizer` non sono esportati da `occ/public_api.ts` (`feature-libs/quote/occ/public_api.ts:L7-L9`); per estenderli bisogna importare da path interni. `SubscriptionDetailsPageMetaResolver` e `SubscriptionBillingDetailsPageMetaResolver` invece sono pubblici in `@spartacus/subscription-billing/core` (`feature-libs/subscription-billing/core/services/index.ts:L6-L7`, `feature-libs/subscription-billing/core/public_api.ts:L10-L10`). Vedi [54 — API pubblica e upgrade](../parte-3/54-upgrade-safe.md).
 
 ## 9. Trappole, casi limite, comportamenti controintuitivi
 
@@ -761,7 +761,7 @@ Attenzione all'API pubblica: `OccQuoteActionNormalizer` e `OccQuoteEntryNormaliz
 
 1. **`requote` e `downloadAttachment` non sono proxati.** Fuori dal chunk `quote` (dove `QuoteFacade` è ancora il proxy) chiamarli dà un metodo non definito (`feature-libs/quote/root/facade/quote.facade.ts:L27-L36`, `core-libs/core/src/lazy-loading/facade-factory/facade-factory.service.ts:L119-L123`). Il chunk `request-button` usa sempre il proxy, ma chiama solo `createQuote`, che è proxato (`feature-libs/quote/components/request-button/quote-request-button.component.ts:L43-L57`).
 2. **Il componente ignora l'Observable di `requote`**: funziona solo perché `Command.execute` è eager (`feature-libs/quote/components/summary/actions/quote-summary-actions.component.ts:L309-L311`, `core-libs/core/src/util/command-query/command.service.ts:L126-L131`).
-3. **`isEditable` significa "già in edit"**: è `false` finché `EDIT` è offerta come bottone (`feature-libs/quote/occ/converters/occ-quote-action-normalizer.ts:L37-L43`).
+3. **`isEditable` significa "OCC permette EDIT ma EDIT non è un bottone"**: è `false` finché `EDIT` è offerta come bottone; tipicamente indica "già in edit", ma è `true` anche per gli stati il cui ordine configurato filtra via `EDIT` (con i default `EXPIRED`, `CANCELLED`) (`feature-libs/quote/occ/converters/occ-quote-action-normalizer.ts:L37-L43`, `feature-libs/quote/occ/converters/occ-quote-action-normalizer.ts:L82-L83`, `feature-libs/quote/core/config/default-quote.core.config.ts:L30-L31`).
 4. **Azioni OCC scartate silenziosamente**: per gli stati con ordine configurato, le azioni non elencate spariscono; per gli altri passano tutte senza ordine (`feature-libs/quote/occ/converters/occ-quote-action-normalizer.ts:L82-L89`). Se aggiungi un'azione lato backend, aggiungila anche in `actionsOrderByState`.
 5. **Lettura sincrona dello stato carrello nel converter**: `take(1)` dentro `subscribe` in `convert`; se il cart non ha ancora emesso, `EDIT` non viene rimosso (`feature-libs/quote/occ/converters/occ-quote-action-normalizer.ts:L65-L81`). La query dettagli mitiga attendendo una prima emissione del carrello (`feature-libs/quote/core/facade/quote.service.ts:L388-L397`).
 6. **`currentPage = 0` non inviato** (test di truthiness) (`feature-libs/quote/occ/adapters/occ-quote.adapter.ts:L59-L61`).
@@ -801,7 +801,7 @@ Attenzione all'API pubblica: `OccQuoteActionNormalizer` e `OccQuoteEntryNormaliz
 - **"Il bottone X non compare"**: confronta `allowedActions` nella risposta di rete di `getQuote` con `actionsOrderByState[state]` effettivo (`ConfigurationService.config.quote`); ricorda che EDIT sparisce se il quote cart attivo è proprio quella quote (`feature-libs/quote/occ/converters/occ-quote-action-normalizer.ts:L60-L89`). Un breakpoint in `OccQuoteActionNormalizer.convert` mostra input e output.
 - **"Il bottone è disabilitato"**: controlla `quote.threshold` e `totalPrice.value` e il toggle per REQUOTE (`feature-libs/quote/components/summary/actions/quote-summary-actions.component.ts:L219-L232`).
 - **"Vengo rimbalzato sulla pagina della quote"**: è `QuoteCartGuard`. Verifica se il carrello attivo ha `quoteCode` (`feature-libs/quote/core/services/quote-cart.service.ts:L18-L45`) e il valore di `checkoutAllowed` (diventa `true` solo da `loadQuoteCartAndProceed` per CHECKOUT, `feature-libs/quote/core/facade/quote.service.ts:L345-L347`). Nello store NgRx del router controlla `nextState.semanticRoute` (`feature-libs/quote/components/cart-guard/quote-cart.guard.ts:L67-L80`).
-- **"La quote non si aggiorna"**: la query dettagli si ricarica solo su `QuoteDetailsReloadQueryEvent` e `LoginEvent` (`feature-libs/quote/core/facade/quote.service.ts:L420-L421`); osserva `EventService.get(QuoteDetailsReloadQueryEvent)` per capire se l'evento parte (cart listener, link, commenti).
+- **"La quote non si aggiorna"**: la query dettagli si ricarica solo su `QuoteDetailsReloadQueryEvent` e `LoginEvent` (`feature-libs/quote/core/facade/quote.service.ts:L418-L420`); osserva `EventService.get(QuoteDetailsReloadQueryEvent)` per capire se l'evento parte (cart listener, link, commenti).
 - **Spinner infinito**: `isActionPerforming$` torna a `false` solo nei rami previsti (`feature-libs/quote/core/facade/quote.service.ts:L244-L292`, `feature-libs/quote/core/facade/quote.service.ts:L356-L360`); per EDIT/CHECKOUT dipende dall'arrivo del cart atteso in `getActive()`.
 - **Messaggi d'errore inattesi**: verifica quale `HttpErrorHandler` vince (priorità `NORMAL` degli handler quote, `feature-libs/quote/root/http-interceptors/quote-bad-request.handler.ts:L54-L56`) e se il payload OCC corrisponde ai tipi/regex attesi.
 - **Ticketing**: per lista o dettaglio "vecchi", segui la catena evento → listener (`feature-libs/customer-ticketing/root/events/customer-ticketing-event.listener.ts:L64-L135`); un errore "Customer ticketing pre conditions not met" indica utente anonimo (`feature-libs/customer-ticketing/core/facade/customer-ticketing.service.ts:L254-L270`).
@@ -817,7 +817,7 @@ Attenzione all'API pubblica: `OccQuoteActionNormalizer` e `OccQuoteEntryNormaliz
    Sul proxy `requote` non è definito, perché non è in `methods`; il proxy definisce solo i metodi elencati. — `feature-libs/quote/root/facade/quote.facade.ts:L27-L36`, `core-libs/core/src/lazy-loading/facade-factory/facade-factory.service.ts:L119-L123`
 
 3. **Quando `Quote.isEditable` è `true`?**
-   Quando OCC permette EDIT ma EDIT è stato rimosso dalle azioni visualizzate, cioè quando la quote (non in `BUYER_OFFER`) è già nel quote cart attivo. — `feature-libs/quote/occ/converters/occ-quote-action-normalizer.ts:L37-L43`, `feature-libs/quote/occ/converters/occ-quote-action-normalizer.ts:L70-L80`
+   Quando OCC permette EDIT ma EDIT è stato rimosso dalle azioni visualizzate, tipicamente quando la quote (non in `BUYER_OFFER`) è già nel quote cart attivo, ma anche negli stati il cui ordine configurato non contiene `EDIT` (con i default `EXPIRED` e `CANCELLED`), dove il filtro lo scarta. — `feature-libs/quote/occ/converters/occ-quote-action-normalizer.ts:L37-L43`, `feature-libs/quote/occ/converters/occ-quote-action-normalizer.ts:L70-L80`, `feature-libs/quote/occ/converters/occ-quote-action-normalizer.ts:L82-L83`, `feature-libs/quote/core/config/default-quote.core.config.ts:L30-L31`
 
 4. **Come fa `QuoteCartGuard` a lasciar passare il checkout di una quote?**
    `loadQuoteCartAndProceed` imposta `setCheckoutAllowed(true)` prima di navigare; il guard consente se la prossima route semantica inizia con `checkout` (o si è già in checkout senza nextState) e il checkout è consentito. — `feature-libs/quote/core/facade/quote.service.ts:L345-L347`, `feature-libs/quote/components/cart-guard/quote-cart.guard.ts:L67-L80`
@@ -829,7 +829,7 @@ Attenzione all'API pubblica: `OccQuoteActionNormalizer` e `OccQuoteEntryNormaliz
    `saveActiveCart` salva come saved cart il carrello attivo non vuoto e non quote cart prima di caricare il quote cart. — `feature-libs/quote/core/facade/quote.service.ts:L461-L487`
 
 7. **Perché dopo aver aggiunto un prodotto al quote cart i totali della quote si aggiornano?**
-   `QuoteCartEventListener` trasforma gli eventi di successo del carrello in `QuoteDetailsReloadQueryEvent`, che è nel `reloadOn` della query dettagli. — `feature-libs/quote/core/event/quote-cart-event.listener.ts:L29-L49`, `feature-libs/quote/core/facade/quote.service.ts:L420-L421`
+   `QuoteCartEventListener` trasforma gli eventi di successo del carrello in `QuoteDetailsReloadQueryEvent`, che è nel `reloadOn` della query dettagli. — `feature-libs/quote/core/event/quote-cart-event.listener.ts:L29-L49`, `feature-libs/quote/core/facade/quote.service.ts:L418-L420`
 
 8. **Che differenza c'è tra le strategie dei command quote e ticketing?**
    Quote usa `CancelPrevious` (`switchMap`, il comando nuovo cancella il precedente); ticketing usa `Queue` (`concatMap`, i comandi si accodano). — `feature-libs/quote/core/facade/quote.service.ts:L127-L129`, `feature-libs/customer-ticketing/core/facade/customer-ticketing.service.ts:L100-L102`, `core-libs/core/src/util/command-query/command.service.ts:L73-L116`
@@ -837,5 +837,5 @@ Attenzione all'API pubblica: `OccQuoteActionNormalizer` e `OccQuoteEntryNormaliz
 9. **Quale evento parte quando si riapre un ticket con un allegato?**
    Nessun `TicketReopenedEvent`: con `containsAttachment` il servizio non dispatcha Reopened/NewMessage; il reload arriva da `UploadAttachmentSuccessEvent`. — `feature-libs/customer-ticketing/core/facade/customer-ticketing.service.ts:L118-L130`, `feature-libs/customer-ticketing/core/facade/customer-ticketing.service.ts:L151-L163`
 
-10. **Perché il prezzo di abbonamento appare in carrello anche se il chunk `subscriptionBilling` non è stato caricato, e perché `cancelSubscription()` senza subscribe non fa nulla?**
-    Gli outlet `SUBSCRIPTION_PRICE_*` sono forniti dal root module eager con componenti standalone; le azioni di `SubscriptionActionsService` sono Observable freddi, non `Command`. — `feature-libs/subscription-billing/root/subscription-billing-root.module.ts:L42-L59`, `feature-libs/subscription-billing/core/facade/subscription-actions.service.ts:L55-L77`
+10. **Perché i componenti del prezzo di abbonamento in carrello esistono anche se il chunk `subscriptionBilling` non è stato caricato, e perché `cancelSubscription()` senza subscribe non fa nulla?**
+    Gli outlet `SUBSCRIPTION_PRICE_*` sono forniti dal root module eager con componenti standalone (il prezzo appare però solo se le entry hanno `sapSubscriptionTerm`/`sapPricePlan`: ⚠️ DA VERIFICARE, dipende dal livello `DEFAULT` del backend); le azioni di `SubscriptionActionsService` sono Observable freddi, non `Command`. — `feature-libs/subscription-billing/root/subscription-billing-root.module.ts:L42-L59`, `feature-libs/subscription-billing/core/facade/subscription-actions.service.ts:L55-L77`
